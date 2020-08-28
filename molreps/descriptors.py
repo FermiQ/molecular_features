@@ -6,7 +6,7 @@ Note they are defined only for one molecule no batches.
 """
 
 import numpy as np
-from methods import coordinates_to_distancematrix,invert_distance,element_list_to_value,inversedistancematrix_to_coulombmatrix
+from molfeat_npy import coordinates_to_distancematrix,invert_distance,element_list_to_value,inversedistancematrix_to_coulombmatrix
 
 
 
