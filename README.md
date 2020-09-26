@@ -17,7 +17,7 @@ Also a graph generator for graph neural networks is located in molreps. This rep
 * In molreps the main classes are listed
 * In methods individual functions are collected that ideally should not depend on each other, so that they can be further used out of the box.
 * We use a clear google-style doc string documentation for each function or class.
-* Methods are sorted by their dependecies.
+* Methods are sorted by their dependecies in modules.
 
 
 <a name="installation"></a>
@@ -32,10 +32,10 @@ pip install -e ./molecular_features
 <a name="implementation-details"></a>
 # Implementation details
 
-Since there are many chemcial libraries in use, their dependencies should be focused so that in order to run molreps, one must not install all external dependecies.
+Since there are many chemcial libraries in use, their dependencies should be focused, in order to run molreps, one must not install all external dependecies.
 The methods are therefore sorted in modules that require specifically numpy, rdkit etc.
 
-<a name="examples"></a>
-# Examples
+<a name="tests"></a>
+# Tests
 
-If added a new function, please supply a short test script in [test](/test) to demonstrate usage. 
+If added a new function, please supply a short test script in [test](/test) to demonstrate usage. Ideally without additional datasets but only python .py scripts.
