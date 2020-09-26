@@ -10,13 +10,13 @@ import rdkit
 import rdkit.Chem.AllChem
 
 
-def rdkit_mol_from_atoms_bonds(self,atoms,bonds,sani=False):
+def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
     """
     Convert an atom list and bond list to a rdkit mol class.
 
     Args:
         atoms (list): List of atoms.
-        bonds (list, np.array): Bond list matching atoms.
+        bonds (list, np.array): Bond list matching atom index.
         sani (bool, optional): Whether to sanitize molecule. Defaults to False.
 
     Returns:
@@ -50,3 +50,7 @@ def rdkit_mol_from_atoms_bonds(self,atoms,bonds,sani=False):
         rdkit.Chem.SanitizeMol(mol)
     
     return mol
+
+
+def rdkit_networkx_add_proton(G,mol,attr_name):
+    pass

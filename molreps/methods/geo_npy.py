@@ -329,6 +329,7 @@ def rotate_to_principle_axis(coord):
 def rigid_transform(A, B):
     """ 
     Rotate and shift pointcloud A to pointcloud B. This should implement Kabsch algorithm.
+    
     Important: the numbering of points of A and B must match, no shuffled pointcloud.
     This works for 3 dimensions only. Uses SVD.
     
