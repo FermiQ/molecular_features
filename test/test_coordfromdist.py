@@ -5,7 +5,7 @@ Created on Fri Apr 24 18:09:40 2020
 @author: Patrick
 """
 
-from molreps.methods import coordinates_to_distancematrix,coordinates_from_distancematrix
+from molreps.methods.geo_npy import coordinates_to_distancematrix,coordinates_from_distancematrix
 import matplotlib.pyplot as plt
 import numpy as np
 

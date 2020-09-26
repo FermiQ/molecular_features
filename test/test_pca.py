@@ -4,7 +4,7 @@ Created on Fri Apr 24 17:35:06 2020
 @author: Patrick Reiser
 """
 
-from molreps.methods import rotate_to_principle_axis
+from molreps.methods.geo_npy import rotate_to_principle_axis
 import matplotlib.pyplot as plt
 import numpy as np
 

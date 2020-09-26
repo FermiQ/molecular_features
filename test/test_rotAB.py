@@ -5,7 +5,7 @@ Created on Mon Apr 27 11:45:32 2020
 """
 
 import numpy as np
-from molreps.methods import rigid_transform
+from molreps.methods.geo_npy import rigid_transform
 
 # Random rotation and translation
 R = np.random.rand(3,3)
