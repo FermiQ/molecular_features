@@ -10,11 +10,15 @@ It uses networkx as graph interface and a mol object from rdkit, ase, pymatgen o
 import networkx as nx
 import numpy as np
 
+#General
+from molreps.methods.geo_npy import coordinates_to_distancematrix,define_adjacency_from_distance
+
 #Rdkit and methods
 try:
     import rdkit
     import rdkit.Chem.AllChem
     MOLGRAPH_RDKIT_AVAILABLE = True
+    from molreps.methods.mol_rdkit import rdkit_proton_list,rdkit_atomlabel_list,rdkit_bond_type_list
 except:
     print("Warning: Rdkit not found for mol class.")
 
@@ -22,6 +26,11 @@ except:
 
 class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
+    
+    _nodes_implemented = ['proton','atom_symbol']
+    _edges_implemented = ['bond_type','distance']
+    _state_implemented = ['num_atoms']
+    
     
     def __init__(self,**kwargs):
         super(MolGraph, self).__init__(**kwargs)
@@ -33,8 +42,14 @@ class MolGraph(nx.Graph):
         
         # Main mol object to use.
         self.mol = None
-            
+        
+        # State Variable
+        self._graph_state = {}
     
+
+    ###########################################################################
+        
+    # Make mol class with different backends
     def mol_from_smiles(self,in_smile):
         """
         Generate mol object from a smile string.
@@ -46,50 +61,142 @@ class MolGraph(nx.Graph):
             MolObject: Representation of the molecule.
 
         """ 
+        # choose rdkit etc here
         m = rdkit.Chem.MolFromSmiles(in_smile)
         m = rdkit.Chem.AddHs(m)
         self.mol = m
         return self.mol
     
-    def mol_from_structure(self,atoms,bondtab):
+    def mol_from_structure(self,atoms,bondtab,coordinates=None):
         pass
     
     def mol_from_geometry(self,atoms,coordinates):
         pass
     
-    def conformation(self,mol_lib='rdkit',methods='ETKDG',conf_selection=None):
-        pass
+    ###########################################################################
+
+    # Conformere management with different backends
+    def _has_conformere(self):
+        # choose rdkit etc here
+        conf_info =  len(self.mol.GetConformers()) > 0 
+        return conf_info
+    
+    def _get_conformere(self,conf_selection=0):
+        if(self._has_conformere()):
+            # choose rdkit etc here
+            return np.array(self.mol.GetConformers()[conf_selection].GetPositions())
+
+    
+    def conformation(self,mol_lib='rdkit',methods='ETKDG',conf_selection=0):
+        # choose rdkit etc here
+        seed =0xf00d 
+        retval = rdkit.Chem.AllChem.EmbedMolecule(self.mol,randomSeed=seed)
+        out = self.mol.GetConformers()[conf_selection].GetPositions()
+        return np.array(out)
+       
     
     
-    def _make_state(self,key,propy,args):
-        pass
+    ###########################################################################
     
+    # Property calculation with different mol backends
+    def _find_nodes_proton(self,key):
+        # choose rdkit etc here
+        return rdkit_proton_list(self.mol,key)
+
+    def _find_nodes_atomlabel(self,key):
+        # choose rdkit etc here
+        return rdkit_atomlabel_list(self.mol,key)
+    
+    def _find_edges_bond_type(self,key):
+        # choose rdkit etc here
+        return rdkit_bond_type_list(self.mol,key)
+    
+    def _find_edges_distance(self,key,bonds_only=True,max_distance=None,max_partners=None):
+        #No check mol-lib necessary, indirect via _make_edges_bond_type() and conformation()
+        if(not self._has_conformere()):
+            self.conformation()
+        dist_mat = coordinates_to_distancematrix(self._get_conformere())
+        adj_dist, idx_dist = define_adjacency_from_distance(dist_mat,max_distance,max_partners)
+        if(bonds_only == True):
+            bonds = self._find_edges_bond_type(key) # use distance key
+            for x in bonds:
+                # Replace Bond-type by distance
+                x[2][key] = dist_mat[x[0],x[1]]
+            return bonds
+        else:    
+            out_list = []
+            for i in range(len(idx_dist)):
+                out_list.append((idx_dist[i][0],idx_dist[i][1],{ key : dist_mat[idx_dist[i][0],idx_dist[i][1]]}))    
+        return out_list
+
+    def _find_state_size(self,key):
+        return {key: len(self.mol.GetAtoms())}
+    
+    ###########################################################################
+    
+    # Check for identifier
     def _make_edges(self,key,propy,args):
         if(propy=="bond_type"):
-            lenats = len(self.mol.GetAtoms())
-            out = np.zeros((lenats,lenats))
-            bonds = list(self.mol.GetBonds())
-            for x in bonds:
-                attr = {key : int(x.GetBondType())}
-                self.add_edge(x.GetBeginAtomIdx(), x.GetEndAtomIdx(), **attr) 
-                self.add_edge(x.GetEndAtomIdx(),x.GetBeginAtomIdx(), **attr) 
-
-        
+            self.add_edges_from(self._find_edges_bond_type(key))
+        elif(propy=="distance"):
+            self.add_edges_from(self._find_edges_distance(key,**args))
+        elif(propy=="inverse_distance"):
+            pass
+        else:
+            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._nodes_implemented)
+            
     def _make_nodes(self,key,propy,args):
         if(propy=="proton"):
-            #lenats = len(self.mol.GetAtoms())
-            for i,atm in enumerate(self.mol.GetAtoms()):
-                attr = {key: atm.GetAtomicNum()}
-                self.add_node(i, **attr)
+            self.add_nodes_from(self._find_nodes_proton(key))
+        elif(propy=="atom_symbol"):
+            self.add_nodes_from(self._find_nodes_atomlabel(key))
+        else:
+            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._edges_implemented)
+          
+    def _make_state(self,key,propy,args):
+        if(propy=="num_atoms"):
+            self._graph_state.update(self._find_state_size(key))
+        else:
+            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._state_implemented)
+    
+    ###########################################################################
     
     def make(self,nodes={'proton' : "proton" ,
-                         'atom' : "atom_label"
+                         'atom' : "atom_symbol"
                          },
                   edges = {'bond' : 'bond_type',
-                           'distance' : {'class' : 'distance' , 'args' : {'bonds_onyly' : True, 'max_distance' : np.inf , 'max_partners' : np.inf}}
+                           'distance' : {'class':'distance', 'args':{'bonds_only':True,'max_distance':None,'max_partners':None}}
                            },
                   state = {'size' : 'num_atoms' 
                            }):
+        """
+        Construct graph from mol instance.
+        
+        The input is a dictionary of properties to calculate. The dict-key 
+        can be chosen freely and will be graph attributes. 
+        The identifier is a string for built-in function e.g. 'proton'. Or if args have to be provided:
+        key : {'class': identifier, 'args':{ args_dict }}
+        Otherwise you can provide a costum method via the the identifier dict of the form:
+        key : {'class': function/class, 'args':{ args_dict }}
+        The callable object of 'class' must accept as first argument this instance. Then key, and then args.
+        Info: This matches tf.keras identifier scheme.
+        
+        Args:
+            nodes (dict, optional): Properties for nodes. Defaults to {'proton' : "proton" , ... }                   
+            edges (dict, optional): Properties for edges. Defaults to {'bond' : 'bond_type', ... }                      
+            state (dict, optional): Properties for graph state. Defaults to {'size' : 'num_atoms', ... }                   
+
+        Raises:
+            AttributeError: If mol not found.
+            ValueError: If identifier dict is incorrect.
+            TypeError: If property info is incorrect.
+
+        Returns:
+            None.
+
+        """
+        if(self.mol == None):
+            raise AttributeError("Initialize Molecule before making graph") 
         
         for key,value in nodes.items():
             if(isinstance(value,str) == True):
@@ -101,6 +208,7 @@ class MolGraph(nx.Graph):
                     args = value['args'] if 'args' in value else None
                     self._make_nodes(key,value['class'],args)
                 else:
+                    #Custom function/class here
                     args = value['args'] if 'args' in value else {}
                     value['class'](self,key,**args)
             else:
@@ -116,6 +224,7 @@ class MolGraph(nx.Graph):
                     args = value['args'] if 'args' in value else None
                     self._make_edges(key,value['class'],args)
                 else:
+                    #Custom function/class here
                     args = value['args'] if 'args' in value else {}
                     value['class'](self,key,**args)
             else:
@@ -131,13 +240,16 @@ class MolGraph(nx.Graph):
                     args = value['args'] if 'args' in value else None
                     self._make_state(key,value['class'],args)
                 else:
+                    #Custom function/class here
                     args = value['args'] if 'args' in value else {}
                     value['class'](self,key,**args)
             else:
                 raise TypeError("Method must be a dict of {'class' : callable function/class or identifier, 'args' : {'value' : 0} }, with optinal args but got", value, "instead")
             
+    ###########################################################################
     
     def to_tensor(self):
+        # Problem to take care not all nodes have all properties.
         pass
         
     
