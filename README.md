@@ -13,7 +13,7 @@ Molecular features for machine learning.
 # General
 
 This is a collection of tools to generate molecular features for machine learning, including common feautre representations like coulomb matrix etc. 
-Also a graph generator for graph neural networks is located in molreps. This repo is built and can be easily expandend following the style:
+Also a graph generator for graph neural networks is located in molreps. This repo is built and can be easily expandend following this recommended style:
 * In molreps the main classes are listed
 * In methods individual functions are collected that ideally should not depend on each other, so that they can be further used out of the box.
 * We use a clear google-style doc string documentation for each function or class.
