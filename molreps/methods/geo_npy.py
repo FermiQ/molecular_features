@@ -442,35 +442,6 @@ def make_angle_list(ind1,ind2):
             out (numpy array):  Indexlist containing an angle-index-set. Shape (M,3)
                                 Where the angle is defined by 0-1-2 as 1->0,1->2 or 1<(0,2) 
     """
-    # agnles between bonds per atom, Reduced shape only for (N,)
-    # indm = max(np.amax(ind1),np.amax(ind2))+1
-    # bondtab = np.full(list(ind1.shape[:-1])+[indm,indm],-1)
-    # bondtab[ind1,ind2] = ind2
-    # bondtab = np.flip(np.sort(bondtab,axis=-1),axis=-1)
-    # mask = bondtab!=-1
-    # bmax = np.amax(np.sum(mask,axis=-1))
-    # mask = mask[...,:bmax]
-    # bondtab = bondtab[...,:bmax]
-    # b1 = np.tile(np.expand_dims(np.expand_dims(np.arange(0,indm),axis=-1),axis=-1),(1,bmax,bmax))
-    # b2 = np.tile(np.expand_dims(bondtab,axis=-1),(1,1,bmax))
-    # b3 = np.tile(np.expand_dims(bondtab,axis=-2),(1,bmax,1))
-    # mask2 = np.tile(np.expand_dims(mask,axis=-1),(1,1,bmax))
-    # mask3 = np.tile(np.expand_dims(mask,axis=-2),(1,bmax,1))
-    # mask = np.logical_and(mask2,mask3)
-    # mask[...,np.arange(0,bmax),np.arange(0,bmax)]= False
-    # b1 = b1[mask]
-    # b2 = b2[mask]
-    # b3 = b3[mask]
-    # bcouples = np.concatenate([np.expand_dims(b2,axis=1),np.expand_dims(b3,axis=1)],axis=-1)
-    # bcouples_sorted = np.sort(bcouples,axis=-1)
-    # u,its = np.unique(bcouples_sorted,axis=0,return_index =True)
-    # b1_u = b1[its]
-    # sort1 = np.argsort(b1_u)
-    # out1 = b1_u[sort1]
-    # out2 = u[sort1]
-    # return out1,out2
-
-
     #Get unique atoms as center for bonds
     n1_uni, n1_counts = np.unique(ind1,return_counts=True)
     n1_multi = np.repeat(n1_uni,n1_counts)
@@ -508,3 +479,60 @@ def make_angle_list(ind1,ind2):
     #remove duplicate 'angles'
     out = np.unique(out_ind,axis=0)
     return out
+
+
+def define_adjacency_from_distance(DistanceMatrix,max_distance=np.inf,max_neighbours=np.inf,exclusive=True,self_loops=False):
+    """
+    Construct adjacency matrix from a distance matrix by distance and number of neighbours. Works for batches.
+
+    Args:
+        DistanceMatrix (np.array): Distance Matrix of shape (...,N,N)
+        max_distance (float, optional): Maximum distance to allow, can also be None. Defaults to np.inf.
+        max_neighbours (int, optional): Maximum number of neighbours, can also be None. Defaults to np.inf.
+        exclusive (bool, optional): Whether both max distance and Neighbours must be fullfileed. Defaults to True.
+        self_loops (bool, optional): Allow self-loops on diagonal. Defaults to False.
+
+    Returns:
+        GraphAdjacency (np.array): Adjacency Matrix of shape (...,N,N) of dtype=np.bool.
+        GraphIndices (np.array): Flatten indizes from former array that have Adjacency == True.
+
+    """
+    DistanceMatrix = np.array(DistanceMatrix)
+    NumAtoms = DistanceMatrix.shape[-1]
+    if(exclusive==True):
+        GraphAdjacency = np.ones_like(DistanceMatrix,dtype = np.bool)
+    else:
+        GraphAdjacency = np.zeros_like(DistanceMatrix,dtype = np.bool)
+    inddiag = np.arange(NumAtoms) 
+    #Make Indix Matrix
+    indarr = np.indices(DistanceMatrix.shape)
+    re_order =np.append (np.arange(1,len(DistanceMatrix.shape)+1),0)
+    GraphIndices = indarr.transpose(re_order) 
+    #print(GraphIndices.shape)
+    #Add Max Radius
+    if(max_distance is not None):
+        temp = DistanceMatrix < max_distance
+        #temp[...,inddiag,inddiag] = False
+        if(exclusive==True):
+            GraphAdjacency = np.logical_and(GraphAdjacency, temp)
+        else:
+            GraphAdjacency = np.logical_or(GraphAdjacency, temp)
+    # Add #Nieghbours
+    if(max_neighbours is not None):
+        max_neighbours = min(max_neighbours,NumAtoms)
+        SortingIndex = np.argsort(DistanceMatrix,axis=-1)
+        #SortedDistance = np.take_along_axis(self.DistanceMatrix, SortingIndex, axis=-1)
+        ind_sorted_red = SortingIndex[...,:max_neighbours+1]
+        temp = np.zeros_like(DistanceMatrix,dtype = np.bool)
+        np.put_along_axis(temp,ind_sorted_red, True,axis=-1)
+        if(exclusive==True):
+            GraphAdjacency = np.logical_and(GraphAdjacency, temp)
+        else:
+            GraphAdjacency = np.logical_or(GraphAdjacency, temp)
+    # Allow self-loops
+    if(self_loops == False):
+        GraphAdjacency[...,inddiag,inddiag] = False
+
+    GraphIndices = GraphIndices[GraphAdjacency]
+    return GraphAdjacency,GraphIndices
+

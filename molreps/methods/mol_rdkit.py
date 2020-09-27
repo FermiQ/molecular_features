@@ -8,6 +8,7 @@ Note: All functions are supposed to work out of the box without any dependencies
 
 import rdkit
 import rdkit.Chem.AllChem
+import numpy as np
 
 
 def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
@@ -15,8 +16,8 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
     Convert an atom list and bond list to a rdkit mol class.
 
     Args:
-        atoms (list): List of atoms.
-        bonds (list, np.array): Bond list matching atom index.
+        atoms (list): List of atoms (N,).
+        bonds (list, np.array): Bond list matching atom index. Shape (N,3) or (N,2).
         sani (bool, optional): Whether to sanitize molecule. Defaults to False.
 
     Returns:
@@ -37,7 +38,7 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
                 if(isinstance(bi,str)):
                     bond_type = bond_names[bi]
                 elif(isinstance(bi,int)):
-                    bond_type = bond_vals[bi]
+                    bond_type = bond_vals[bi]  #or directly rdkit.Chem.rdchem.BondType
                 else:
                     bond_type = bi
                 mol.AddBond(int(bonds[i][0]), int(bonds[i][1]), bond_type)
@@ -52,5 +53,69 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
     return mol
 
 
-def rdkit_networkx_add_proton(G,mol,attr_name):
-    pass
+
+def rdkit_proton_list(mol,key="AtomicNum"):
+    """
+    Make a list of atoms with atomic number information from rdkit.mol.
+
+    Args:
+        mol (rdkit.Chem.Mol): Mol object to get information from.
+        key (str, optional): Key to put in list. Defaults to "AtomicNum".
+
+    Returns:
+        G (list): Atomlist that can be used in a graph of shape [i, {key:AtomicNum}]
+
+    """
+    #lenats = len(mol.GetAtoms())
+    G = []
+    for i,atm in enumerate(mol.GetAtoms()):
+        attr = {key: atm.GetAtomicNum()}
+        G.append((i, attr))
+    return G
+        
+
+
+def rdkit_atomlabel_list(mol,key="Symbol"):
+    """
+    Make a list of atoms with symbol information from rdkit.mol.
+
+    Args:
+        mol (rdkit.Chem.Mol): Mol object to get information from.
+        key (str, optional): Key to put in list. Defaults to "Symbol".
+
+    Returns:
+        G (list): Atomlist that can be used in a graph of shape [i, {key:Symbol}]
+
+    """
+    #lenats = len(mol.GetAtoms())
+    G = []
+    for i,atm in enumerate(mol.GetAtoms()):
+        attr = {key: atm.GetSymbol()}
+        G.append((i, attr))
+    return G
+
+
+
+def rdkit_bond_type_list(mol,key = "BondType"):
+    """
+    Make a list of bonds with bond-type information from rdkit.mol.
+
+    Args:
+        mol (rdkit.Chem.Mol): Mol object to get information from.
+        key (str, optional): Key to put in list. Defaults to "BondType".
+
+    Returns:
+        G (list): Bondlist that can be used in a graph of shape [(i,j), {key:BondType}]
+
+    """
+    #lenats = len(mol.GetAtoms())
+    #out = np.zeros((lenats,lenats))
+    bonds = list(mol.GetBonds())
+    G=[]
+    for x in bonds:
+        attr = {key : int(x.GetBondType())}
+        G.append((x.GetBeginAtomIdx(), x.GetEndAtomIdx(), attr))
+        G.append((x.GetEndAtomIdx(),x.GetBeginAtomIdx(), attr) )
+    return G
+
+
