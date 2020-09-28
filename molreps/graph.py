@@ -248,12 +248,65 @@ class MolGraph(nx.Graph):
             
     ###########################################################################
     
-    def to_tensor(self):
-        # Problem to take care not all nodes have all properties.
-        pass
+    def to_graph_tensors(self,
+                         nodes = {'proton' : [np.array,np.array(0)] },
+                         edges = {'bond' : [np.array,np.array(0)], 'distance' : [np.array,np.array(0)]},
+                         state = {'size' : [np.array,np.array(0)]},
+                         out_tensor = np.array
+                         ):
+        """
+        Convert the nx graph into a dict of tensors which can be directly used for GCN.
+        
+        The desired attributes must be given with a suitable converison function plus default value. 
+        Here, one can add also the type of tensor or one-Hot mappings etc. and its default/zero state
+        if the attributes is not specified for a specific node/edge.
+        We can change this also to a default zero padding if this is a better way.
+
+        Args:
+            nodes (dict, optional): Nodes properties. Defaults to {'proton' : np.array }.
+            edges (dict, optional): Edge properties. Defaults to {'bond' : np.array, 'distance' : np.array}.
+            state (dict, optional): State Properties. Defaults to {'size' : np.array}.
+
+        Returns:
+            dict: Graph tensors as dictionary.
+
+        """
+        outn = []
+        oute = []
+        outs = []
+        outA = nx.to_numpy_array(self)
+        outei = []
+        
+        node_idx = np.array(list(self.nodes),dtype=np.int)
+        edge_idx = np.array(list(self.edges),dtype=np.int)
+        
+        for i in node_idx:
+            outn.append([trafo[0](self.nodes[i][key]) if key in self.nodes[i] else trafo[1] for key,trafo in nodes.items()])
+        outn = out_tensor(outn)
+        
+        for i in edge_idx:
+            oute.append([trafo[0](self.edges[i][key]) if key in self.edges[i] else trafo[1] for key,trafo in edges.items()])
+        oute = out_tensor(oute)
+        
+        outs = [trafo[0](self._graph_state[key]) if key in self._graph_state else trafo[1] for key,trafo in state.items()]
+        outs = out_tensor(outs)
+        
+        # Make directed
+        outei = np.concatenate([np.array(edge_idx),np.flip(np.array(edge_idx),axis=-1)],axis=0)
+        oute = np.concatenate([oute,oute],axis=0)
+        
+        #Need some sorting also
+        
+        
+        return {"nodes" : outn,
+                "edges" :oute,
+                "state" :outs,
+                "adjacency" :outA,
+                "indices" :outei}
         
     
 test = MolGraph()
 test.mol_from_smiles("CCCO")
 test.make()
 nx.draw(test)
+out = test.to_graph_tensors()
