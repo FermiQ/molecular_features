@@ -38,9 +38,9 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
                 if(isinstance(bi,str)):
                     bond_type = bond_names[bi]
                 elif(isinstance(bi,int)):
-                    bond_type = bond_vals[bi]  #or directly rdkit.Chem.rdchem.BondType
+                    bond_type = bond_vals[bi]  
                 else:
-                    bond_type = bi
+                    bond_type = bi #or directly rdkit.Chem.rdchem.BondType
                 mol.AddBond(int(bonds[i][0]), int(bonds[i][1]), bond_type)
             else:
                 mol.AddBond(int(bonds[i][0]), int(bonds[i][1]))
@@ -53,56 +53,62 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
     return mol
 
 
-
-def rdkit_proton_list(mol,key="AtomicNum"):
+def rdkit_add_conformer(mol,coords,assignID = False):
     """
-    Make a list of atoms with atomic number information from rdkit.mol.
+    Add a confromer to a mol object.
+
+    Args:
+        mol (rdkit.Chem.Mol): Mol object to add conformer.
+        coords (array): Array of coordinates of shape (N,3).
+        assignID (bool,int): To assing conformer iD. Default is False.
+
+    Returns:
+        mol (rdkit.Chem.Mol): Mol Object with added conformer.
+
+    """
+    conf = rdkit.Chem.Conformer(len(coords))
+    for i in range(len(coords)):
+        conf.SetAtomPosition(i,[coords[i,0],coords[i,1],coords[i,2]])
+    mol.AddConformer(conf,assignId=assignID)
+    return mol
+
+
+
+def rdkit_atom_list(mol,key,method,args={}):
+    """
+     Make a list of atoms with atomic information from rdkit.mol.
 
     Args:
         mol (rdkit.Chem.Mol): Mol object to get information from.
-        key (str, optional): Key to put in list. Defaults to "AtomicNum".
+        key (str): Key of property to put in list.
+        method (func): Class member method for rdkit.Chem.rdchem.Atom.
+        args (dict, optional): Optinal arguments for class method. Defaults to {}.
 
     Returns:
-        G (list): Atomlist that can be used in a graph of shape [i, {key:AtomicNum}]
+        G (TYPE): Atomlist that can be used in a graph of shape [i, {key:AtomicNum}]
 
     """
-    #lenats = len(mol.GetAtoms())
+        #lenats = len(mol.GetAtoms())
     G = []
     for i,atm in enumerate(mol.GetAtoms()):
-        attr = {key: atm.GetAtomicNum()}
-        G.append((i, attr))
-    return G
-        
-
-
-def rdkit_atomlabel_list(mol,key="Symbol"):
-    """
-    Make a list of atoms with symbol information from rdkit.mol.
-
-    Args:
-        mol (rdkit.Chem.Mol): Mol object to get information from.
-        key (str, optional): Key to put in list. Defaults to "Symbol".
-
-    Returns:
-        G (list): Atomlist that can be used in a graph of shape [i, {key:Symbol}]
-
-    """
-    #lenats = len(mol.GetAtoms())
-    G = []
-    for i,atm in enumerate(mol.GetAtoms()):
-        attr = {key: atm.GetSymbol()}
+        attr = {key: method(atm,**args)}
         G.append((i, attr))
     return G
 
 
 
-def rdkit_bond_type_list(mol,key = "BondType"):
+
+
+def rdkit_bond_list(mol,key,method,args={},trafo=int):
     """
     Make a list of bonds with bond-type information from rdkit.mol.
 
     Args:
         mol (rdkit.Chem.Mol): Mol object to get information from.
-        key (str, optional): Key to put in list. Defaults to "BondType".
+        key (str, optional): Key of property to put in list.
+        method (func): Class member method for rdkit.Chem.rdchem.Bond.
+        args (dict, optional): Optinal arguments for class method. Defaults to {}.
+        trafo (func): Casting or trafo funciton. Default is int.
 
     Returns:
         G (list): Bondlist that can be used in a graph of shape [(i,j), {key:BondType}]
@@ -113,7 +119,7 @@ def rdkit_bond_type_list(mol,key = "BondType"):
     bonds = list(mol.GetBonds())
     G=[]
     for x in bonds:
-        attr = {key : int(x.GetBondType())}
+        attr = {key : trafo(method(x,**args))}
         G.append((x.GetBeginAtomIdx(), x.GetEndAtomIdx(), attr))
         G.append((x.GetEndAtomIdx(),x.GetBeginAtomIdx(), attr) )
     return G

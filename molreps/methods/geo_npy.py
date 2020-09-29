@@ -1,5 +1,6 @@
 """
 Molecular geometric feature representation based on numpy. A loose collection of functions.
+
 Modular functions to compute distance matrix, angles, coordinates, connectivity, etc.
 Many functions are written for batches too. Ideally all functions are vectorized.
 Note: All functions are supposed to work out of the box without any dependencies, i.e. do not depend on each other.
@@ -485,10 +486,13 @@ def make_angle_list(ind1,ind2):
 def define_adjacency_from_distance(DistanceMatrix,max_distance=np.inf,max_neighbours=np.inf,exclusive=True,self_loops=False):
     """
     Construct adjacency matrix from a distance matrix by distance and number of neighbours. Works for batches.
+    
+    This does take into account special bonds (e.g. chemical) just a general distance measure.
+    Tries to connect nearest neighbours.
 
     Args:
         DistanceMatrix (np.array): Distance Matrix of shape (...,N,N)
-        max_distance (float, optional): Maximum distance to allow, can also be None. Defaults to np.inf.
+        max_distance (float, optional): Maximum distance to allow connections, can also be None. Defaults to np.inf.
         max_neighbours (int, optional): Maximum number of neighbours, can also be None. Defaults to np.inf.
         exclusive (bool, optional): Whether both max distance and Neighbours must be fullfileed. Defaults to True.
         self_loops (bool, optional): Allow self-loops on diagonal. Defaults to False.
