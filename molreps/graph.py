@@ -39,17 +39,13 @@ except:
 
 
 
-class MolGraph(nx.Graph):
-    """Molecular Graph which inherits from networkx graph."""
+class MolInterface():
     
     _nodes_implemented = ['proton','symbol']
     _edges_implemented = ['bond','distance']
     _state_implemented = ['size']
     
-    
     def __init__(self,**kwargs):
-        super(MolGraph, self).__init__(**kwargs)
-        
         # Determine available mol libs
         self.mol_libs_avail = []
         if(MOLGRAPH_RDKIT_AVAILABLE == True):
@@ -60,99 +56,9 @@ class MolGraph(nx.Graph):
         # Main mol object to use.
         self.mol_libs_use = "rdkit"
         self.mol = None
-        
-        # State Variable
-        self._graph_state = {}
-    
-
-    ###########################################################################
-        
-    # Make mol class with different backends
-    def mol_from_smiles(self,in_smile):
-        """
-        Generate mol object from a smile string.
-
-        Args:
-            in_smile (str): smile.
-
-        Returns:
-            MolObject: Representation of the molecule.
-
-        """ 
-        if(self.mol_libs_use == "rdkit"):
-            m = rdkit.Chem.MolFromSmiles(in_smile)
-            m = rdkit.Chem.AddHs(m)
-            self.mol = m
-            return self.mol
-    
-    def mol_from_structure(self,atoms,bondlist,coordinates=None):
-        """
-        Generate a mol object from a given strucutre. 
-
-        Args:
-            atoms (list): Atomlist e.g. ['C','H',"H"].
-            bondlist (list):    Bondlist of shape (N,3). With a bond as (i,j,type)
-                                The bondtype is directly transferred to backend.
-            coordinates (array, optional): Coordinates for a given conformere of shape (N,3). Defaults to None.
-
-        Returns:
-            MolObject: Representation of the molecule.
-
-        """
-        if(self.mol_libs_use == "rdkit"):
-            self.mol = rdkit_mol_from_atoms_bonds(atoms,bondlist)
-            if(coordinates is not None):
-                rdkit_add_conformer(self.mol,coordinates)
-            return self.mol
-    
-    
-    def mol_from_geometry(self,atoms,coordinates,backend='openbabel'):
-        """
-        Generate a mol class from coordinates and atom Type.
-        
-        Note here the bond order and type has to be determined. This is not 
-        strictly unique and can differ in the method used,
-
-        Args:
-            atoms (list): Atomlist e.g. ['C','H',"H"].
-            coordinates (arry): List of shape (N,3)
-            backend (str): If a specific mol lib should be used.
-
-        Returns:
-             MolObject: Representation of the molecule.
-
-        """
-        if("openbabel" in self.mol_libs_avail and backend=='openbabel'):
-            _,_,bonds,_ = ob_get_bond_table_from_coordinates
-            return self.mol_from_structure(atoms,bonds,coordinates)
-        else:
-            print("Will be implemented soon")
-    
-    
-    def mol_from_coulombmat(self,coulmat,unit_conversion=1):
-        """
-        Map coulombmatrix to mol class. 
-        
-        This is however a slow and difficult problem as there is not strictly a unique mol.
-
-        Args:
-            coulmat (np.array): Coulombmatrix of shape (N,N).
-            unit_conversion (TYPE, optional): If distance is not in Angström (often the case). Defaults to 1.
-
-        Returns:
-            MolObject: Representation of the molecule.
-
-        """
-        # Does not require mol backend inference, just self.mol_from_geometry
-        invd,pr = coulombmatrix_to_inversedistance_proton(coulmat,unit_conversion)
-        dist = invert_distance(invd)
-        cords = coordinates_from_distancematrix(dist)
-        ats = element_list_to_value(pr,get_atom_property_dicts("FromProton"))
-        return self.mol_from_geometry(ats,cords)
-        
     
     ###########################################################################
-
+    
     # Conformere management with different backends
     def _has_conformere(self):
         if(self.mol_libs_use == "rdkit"):
@@ -172,7 +78,43 @@ class MolGraph(nx.Graph):
             out = self.mol.GetConformers()[conf_selection].GetPositions()
             return np.array(out)
        
+    ###########################################################################
+        
+    # Make mol class with different backends
+    def mol_from_smiles(self,in_smile):
+        
+        if(self.mol_libs_use == "rdkit"):
+            m = rdkit.Chem.MolFromSmiles(in_smile)
+            m = rdkit.Chem.AddHs(m)
+            self.mol = m
+            return self.mol
     
+    def mol_from_structure(self,atoms,bondlist,coordinates=None):
+
+        if(self.mol_libs_use == "rdkit"):
+            self.mol = rdkit_mol_from_atoms_bonds(atoms,bondlist)
+            if(coordinates is not None):
+                rdkit_add_conformer(self.mol,coordinates)
+            return self.mol
+    
+    
+    def mol_from_geometry(self,atoms,coordinates,backend='openbabel'):
+
+        if("openbabel" in self.mol_libs_avail and backend=='openbabel'):
+            _,_,bonds,_ = ob_get_bond_table_from_coordinates
+            return self.mol_from_structure(atoms,bonds,coordinates)
+        else:
+            print("Will be implemented soon")
+    
+    
+    def mol_from_coulombmat(self,coulmat,unit_conversion=1):
+
+        # Does not require mol backend inference, just self.mol_from_geometry
+        invd,pr = coulombmatrix_to_inversedistance_proton(coulmat,unit_conversion)
+        dist = invert_distance(invd)
+        cords = coordinates_from_distancematrix(dist)
+        ats = element_list_to_value(pr,get_atom_property_dicts("FromProton"))
+        return self.mol_from_geometry(ats,cords)
     
     ###########################################################################
     
@@ -209,16 +151,113 @@ class MolGraph(nx.Graph):
 
     def _find_state_size(self,key):
         if(self.mol_libs_use == "rdkit"):
-            return {key: len(self.mol.GetAtoms())}
+            return {key: len(self.mol.GetAtoms())}   
+        
+
+
+
+class MolGraph(nx.Graph):
+    """Molecular Graph which inherits from networkx graph."""
+    
+    
+    def __init__(self,**kwargs):
+        super(MolGraph, self).__init__(**kwargs)
+          
+        self.mol = MolInterface()
+        # State Variable
+        self._graph_state = {}
+    
+
+    ###########################################################################
+        
+    # Make mol interface with different backends
+    def mol_from_smiles(self,in_smile):
+        """
+        Generate mol object from a smile string.
+
+        Args:
+            in_smile (str): smile.
+
+        Returns:
+            MolInterface: Representation of the molecule.
+
+        """ 
+        return self.mol.mol_from_smiles(in_smile)
+    
+    def mol_from_structure(self,atoms,bondlist,coordinates=None):
+        """
+        Generate a mol object from a given strucutre. 
+
+        Args:
+            atoms (list): Atomlist e.g. ['C','H',"H"].
+            bondlist (list):    Bondlist of shape (N,3). With a bond as (i,j,type)
+                                The bondtype is directly transferred to backend.
+            coordinates (array, optional): Coordinates for a given conformere of shape (N,3). Defaults to None.
+
+        Returns:
+            MolInterface: Representation of the molecule.
+
+        """
+        return self.mol.mol_from_structure(atoms,bondlist,coordinates=None)
+    
+    
+    def mol_from_geometry(self,atoms,coordinates,backend='openbabel'):
+        """
+        Generate a mol class from coordinates and atom Type.
+        
+        Note here the bond order and type has to be determined. This is not 
+        strictly unique and can differ in the method used,
+
+        Args:
+            atoms (list): Atomlist e.g. ['C','H',"H"].
+            coordinates (arry): List of shape (N,3)
+            backend (str): If a specific mol lib should be used.
+
+        Returns:
+             MolInterface: Representation of the molecule.
+
+        """
+        return self.mol.mol_from_geometry(atoms,coordinates,backend='openbabel')
+    
+    
+    def mol_from_coulombmat(self,coulmat,unit_conversion=1):
+        """
+        Map coulombmatrix to mol class. 
+        
+        This is however a slow and difficult problem as there is not strictly a unique mol.
+
+        Args:
+            coulmat (np.array): Coulombmatrix of shape (N,N).
+            unit_conversion (TYPE, optional): If distance is not in Angström (often the case). Defaults to 1.
+
+        Returns:
+            MolInterface: Representation of the molecule.
+
+        """
+        return self.mol.mol_from_coulombmat(coulmat,unit_conversion=1)
+        
+   
+    ###########################################################################
+    
+
+    # Conformere management with different backends
+    def _has_conformere(self):
+        return self.mol._has_conformere()
+    
+    def _get_conformere(self,conf_selection=0):
+        return self.mol._get_conformere(conf_selection=0)
+    
+    def conformation(self,methods='ETKDG',conf_selection=0,mol_lib='rdkit'):
+        return self.mol.conformation(mol_lib,methods,conf_selection)
     
     ###########################################################################
     
     # Check for identifier
     def _make_edges(self,key,propy,args):
         if(propy=="bond"):
-            self.add_edges_from(self._find_edges_bond_type(key))
+            self.add_edges_from(self.mol._find_edges_bond_type(key))
         elif(propy=="distance"):
-            self.add_edges_from(self._find_edges_distance(key,**args))
+            self.add_edges_from(self.mol._find_edges_distance(key,**args))
         elif(propy=="inverse_distance"):
             pass
         else:
@@ -226,15 +265,15 @@ class MolGraph(nx.Graph):
             
     def _make_nodes(self,key,propy,args):
         if(propy=="proton"):
-            self.add_nodes_from(self._find_nodes_proton(key))
+            self.add_nodes_from(self.mol._find_nodes_proton(key))
         elif(propy=="symbol"):
-            self.add_nodes_from(self._find_nodes_atomlabel(key))
+            self.add_nodes_from(self.mol._find_nodes_atomlabel(key))
         else:
             raise ValueError("Property identifier",propy,"is not implemented. Choose",self._edges_implemented)
           
     def _make_state(self,key,propy,args):
         if(propy=="size"):
-            self._graph_state.update(self._find_state_size(key))
+            self._graph_state.update(self.mol._find_state_size(key))
         else:
             raise ValueError("Property identifier",propy,"is not implemented. Choose",self._state_implemented)
     
@@ -328,9 +367,12 @@ class MolGraph(nx.Graph):
     ###########################################################################
     
     def to_graph_tensors(self,
-                         nodes = {'proton' : [np.array,np.array(0)] },
-                         edges = {'bond' : [np.array,np.array(0)], 'distance' : [np.array,np.array(0)]},
-                         state = {'size' : [np.array,np.array(0)]},
+                         nodes = {'proton' : np.array },
+                         edges = {'bond' : np.array, 'distance' : np.array},
+                         state = {'size' : np.array},
+                         default_nodes = {'proton' : np.array(0)},
+                         default_edges = {'bond' : np.array(0), 'distance' : np.array(0)},
+                         default_state = {'size' : np.array(0)},
                          out_tensor = np.array
                          ):
         """
@@ -345,6 +387,10 @@ class MolGraph(nx.Graph):
             nodes (dict, optional): Nodes properties. Defaults to {'proton' : np.array }.
             edges (dict, optional): Edge properties. Defaults to {'bond' : np.array, 'distance' : np.array}.
             state (dict, optional): State Properties. Defaults to {'size' : np.array}.
+            default_nodes (dict, optional): Zero Nodes properties. Defaults to {'proton' : np.array(0) }.
+            default_edges (dict, optional): Zero Edge properties. Defaults to {'bond' : np.array(0), 'distance' : np.array(0)}.
+            default_state (dict, optional): Zero State Properties. Defaults to {'size' : np.array(0)}.
+            out_tensor (func) : Final Function for each node/edge/state. Default is np.array.
 
         Returns:
             dict: Graph tensors as dictionary.
@@ -360,14 +406,30 @@ class MolGraph(nx.Graph):
         edge_idx = np.array(list(self.edges),dtype=np.int)
         
         for i in node_idx:
-            outn.append([trafo[0](self.nodes[i][key]) if key in self.nodes[i] else trafo[1] for key,trafo in nodes.items()])
+            current_node = []
+            for key,trafo in nodes.items():
+                if key in self.nodes[i]:
+                    current_node.append(trafo(self.nodes[i][key]))
+                else: 
+                    current_node.append(default_nodes[key])
+            outn.append(current_node)               
         outn = out_tensor(outn)
         
         for i in edge_idx:
-            oute.append([trafo[0](self.edges[i][key]) if key in self.edges[i] else trafo[1] for key,trafo in edges.items()])
+            current_edge = []
+            for key,trafo in edges.items():
+                if key in self.edges[i]: 
+                    current_edge.append(trafo(self.edges[i][key]))
+                else: 
+                    current_edge.append(default_edges[key])
+            oute.append(current_edge)
         oute = out_tensor(oute)
         
-        outs = [trafo[0](self._graph_state[key]) if key in self._graph_state else trafo[1] for key,trafo in state.items()]
+        for key,trafo in state.items():
+            if key in self._graph_state:
+                outs.append(trafo(self._graph_state[key]))
+            else:
+                outs.append(default_state[key])
         outs = out_tensor(outs)
         
         # Make directed
