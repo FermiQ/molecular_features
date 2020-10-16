@@ -153,6 +153,46 @@ class MolInterface():
         if(self.mol_libs_use == "rdkit"):
             return {key: len(self.mol.GetAtoms())}   
         
+    def _find_nodes_degree(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetTotalDegree)
+    
+    def _find_nodes_valence(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetTotalValence)
+    
+    def _find_nodes_aromatic(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetIsAromatic)    
+    
+    def _find_nodes_NumHs(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetNumExplicitHs)  
+    
+    def _find_nodes_IsInRing(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.IsInRing) 
+    
+    def _find_nodes_hybridization(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetHybridization) 
+
+    def _find_nodes_mass(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetMass) 
+ 
+    def _find_edges_aromatic(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.GetIsAromatic)
+
+    def _find_edges_conjugated(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.GetIsConjugated)
+        
+    def _find_edges_ring(self,key):
+        if(self.mol_libs_use == "rdkit"):
+            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.IsInRing)
+
 
 
 
@@ -260,14 +300,35 @@ class MolGraph(nx.Graph):
             self.add_edges_from(self.mol._find_edges_distance(key,**args))
         elif(propy=="inverse_distance"):
             pass
+        elif(propy=="is_aromatic"):
+            self.add_edges_from(self.mol._find_edges_aromatic(key))
+        elif(propy=="is_conjugated"):
+            self.add_edges_from(self.mol._find_edges_conjugated(key))
+        elif(propy=="in_ring"):
+            self.add_edges_from(self.mol._find_edges_ring(key))
         else:
             raise ValueError("Property identifier",propy,"is not implemented. Choose",self._nodes_implemented)
-            
+    
+        
     def _make_nodes(self,key,propy,args):
         if(propy=="proton"):
             self.add_nodes_from(self.mol._find_nodes_proton(key))
         elif(propy=="symbol"):
             self.add_nodes_from(self.mol._find_nodes_atomlabel(key))
+        elif(propy=="num_Hs"):
+            self.add_nodes_from(self.mol._find_nodes_NumHs(key))
+        elif(propy=="aromatic"):
+            self.add_nodes_from(self.mol._find_nodes_aromatic(key))
+        elif(propy=="degree"):
+            self.add_nodes_from(self.mol._find_nodes_degree(key))
+        elif(propy=="valence"):
+            self.add_nodes_from(self.mol._find_nodes_valence(key))
+        elif(propy=="mass"):
+            self.add_nodes_from(self.mol._find_nodes_mass(key))
+        elif(propy=="in_ring"):
+            self.add_nodes_from(self.mol._find_nodes_IsInRing(key))
+        elif(propy=="hybridization"):
+            self.add_nodes_from(self.mol._find_nodes_hybridization(key))
         else:
             raise ValueError("Property identifier",propy,"is not implemented. Choose",self._edges_implemented)
           
@@ -280,10 +341,20 @@ class MolGraph(nx.Graph):
     ###########################################################################
     
     def make(self,nodes={'proton' : "proton" ,
-                         'symbol' : "symbol"
+                         'symbol' : "symbol",
+                         "num _Hs" : "num_Hs",
+                         "aromatic" : "aromatic",
+                         "degree" : "degree",
+                         "valence" : "valence",
+                         "mass" : "mass",
+                         "in_ring" : "in_ring",
+                         "hybridization" : "hybridization"
                          },
                   edges = {'bond' : 'bond',
-                           'distance' : {'class':'distance', 'args':{'bonds_only':True,'max_distance':None,'max_partners':None}}
+                           'distance' : {'class':'distance', 'args':{'bonds_only':True,'max_distance':None,'max_partners':None}},
+                           "is_aromatic" : "is_aromatic",
+                           "is_conjugated" : "is_conjugated",
+                           "in_ring" : "in_ring",
                            },
                   state = {'size' : 'size' 
                            }):
@@ -448,8 +519,8 @@ class MolGraph(nx.Graph):
                 "indices" :outei}
         
     
-test = MolGraph()
-test.mol_from_smiles("C=O")
-test.make()
-nx.draw(test)
-out = test.to_graph_tensors()
+# test = MolGraph()
+# test.mol_from_smiles("C=O")
+# test.make()
+# nx.draw(test)
+# out = test.to_graph_tensors()
