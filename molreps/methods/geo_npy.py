@@ -211,7 +211,6 @@ def get_connectivity_from_inversedistancematrix(invdistmat,protons,radii_dict=No
     damp = (1.0+np.exp(-k1*(rr-1.0)))
     damp = 1.0/damp        
     if(force_bonds==True): # Have at least one bond
-        print("Info: Forcing bond.")
         maxvals = np.expand_dims(np.argmax(damp,axis=-1),axis=-1)
         np.put_along_axis(damp,maxvals,1,axis=-1)
         #To make it symmetric transpose last two axis
