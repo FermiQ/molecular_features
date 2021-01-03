@@ -211,9 +211,13 @@ def get_connectivity_from_inversedistancematrix(invdistmat,protons,radii_dict=No
     damp = (1.0+np.exp(-k1*(rr-1.0)))
     damp = 1.0/damp        
     if(force_bonds==True): # Have at least one bond
+        print("Info: Forcing bond.")
         maxvals = np.expand_dims(np.argmax(damp,axis=-1),axis=-1)
-        #damp[...,np.arange(0,damp.shape[-2]),maxvals]=1
         np.put_along_axis(damp,maxvals,1,axis=-1)
+        #To make it symmetric transpose last two axis
+        damp = np.swapaxes(damp,-2,-1)
+        np.put_along_axis(damp,maxvals,1,axis=-1)
+        damp = np.swapaxes(damp,-2,-1)
     damp[damp<cutoff] = 0
     bond_tab = np.round(damp)          
     return bond_tab
@@ -328,7 +332,7 @@ def rotate_to_principle_axis(coord):
     return vh, rotshift
 
 
-def rigid_transform(A, B):
+def rigid_transform(A, B,correct_reflection=False):
     """ 
     Rotate and shift pointcloud A to pointcloud B. This should implement Kabsch algorithm.
     
@@ -360,10 +364,13 @@ def rigid_transform(A, B):
     H = np.dot(Am ,np.transpose(Bm))
     U, S, Vt = np.linalg.svd(H)
     R = np.dot(Vt.T,U.T)
-    if np.linalg.det(R) < 0: #reflections
-        Vt[-1,:] *= -1 #last eigenvalue should be zero 
-        #this equals S=diag(1,1,|VU^T|) with VSU^T as in wikipedia
-        R = np.dot(Vt.T , U.T)
+    d = np.linalg.det(R)
+    if(d<0):
+        print("Warning: det(R)<0, det(R)=",d)
+        if(correct_reflection==True):
+            print("Correcting R...")
+            Vt[-1, :] *= -1
+            R = np.dot(Vt.T, U.T)
     Bout = np.dot(R,Am) + np.expand_dims(centroid_B,axis=1)
     Bout = np.transpose(Bout)
     t = np.expand_dims(centroid_B-np.dot(R,centroid_A),axis=0)
