@@ -23,7 +23,7 @@ Also a graph generator for graph neural networks is found in molreps. This repo 
 <a name="installation"></a>
 # Installation
 
-Clone repository and install with editable mode:
+Clone repository https://github.com/aimat-lab/molecular_features and install with editable mode:
 
 ```bash
 pip install -e ./molecular_features
