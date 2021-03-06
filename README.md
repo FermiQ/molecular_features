@@ -32,8 +32,8 @@ pip install -e ./molecular_features
 <a name="implementation-details"></a>
 # Implementation details
 
-Since there are many chemcial libraries in use, their dependencies should be focused, in order to run molreps, one must not install all external dependecies.
-The methods are therefore sorted in modules that require specifically numpy, rdkit etc.
+Since there are many chemcial libraries in use, their dependencies should be flexible. In order to install molreps, external dependecies are set only as optional.
+The methods are therefore sorted in modules that require specifically numpy, rdkit etc. However, further external libraries have to be installed manually.
 
 <a name="tests"></a>
 # Tests
