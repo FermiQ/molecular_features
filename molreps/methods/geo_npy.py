@@ -1,11 +1,9 @@
-"""
-Molecular geometric feature representation based on numpy. A loose collection of functions.
+"""Molecular geometric feature representation based on numpy. 
 
+A loose collection of functions.
 Modular functions to compute distance matrix, angles, coordinates, connectivity, etc.
 Many functions are written for batches too. Ideally all functions are vectorized.
 Note: All functions are supposed to work out of the box without any dependencies, i.e. do not depend on each other.
-
-@author: Patrick Reiser,
 """
 
 import numpy as np
@@ -14,15 +12,17 @@ import numpy as np
     
 def coordinates_to_distancematrix(Coord3D):
     """
-    Transform coordinates to distance matrix. Will apply transformation on last dimension.
+    Transform coordinates to distance matrix.
+    
+    Will apply transformation on last dimension.
     Changing of shape (...,N,3) -> (...,N,N)
     
     Arg:
-        Coord3D (numpy array):  Coordinates of shape (...,N,3) for cartesian coordinates (x,y,z) 
-                                and N the number of atoms or points. Coordinates are last dimension.
+        Coord3D (np.array):  Coordinates of shape (...,N,3) for cartesian coordinates (x,y,z) 
+                             and N the number of atoms or points. Coordinates are last dimension.
 
     Returns:
-        Distance matrix as numpy array with shape (...,N,N) where N is the number of atoms
+        np.array: Distance matrix as numpy array with shape (...,N,N) where N is the number of atoms
     """
     shape_3d = len(Coord3D.shape)
     a = np.expand_dims(Coord3D, axis = shape_3d -2)
@@ -34,18 +34,20 @@ def coordinates_to_distancematrix(Coord3D):
 
 def invert_distance(d,nan=0,posinf=0,neginf=0):
     """
-    Invert distance array, e.g. distance matrix. Inversion is done for all entries.
+    Invert distance array, e.g. distance matrix.
+    
+    Inversion is done for all entries.
     Keeping of shape (...,) -> (...,)
     
     Args:
-        d (numpy array): array of distance values of shape (...,)
+        d (np.array): array of distance values of shape (...,)
         nan (value): replacement for np.nan after division, default = 0
         posinf (value): replacement for np.inf after division, default = 0
         neginf (value): replacement for -np.inf after division, default = 0
         
     Returns:
-        Inverted distance array as numpy array of identical shape (...,) and
-        replaces np.nan and np.inf with e.g. 0
+        np.array: Inverted distance array as numpy array of identical shape (...,) and
+                  replaces np.nan and np.inf with e.g. 0
     """
     with np.errstate(divide='ignore', invalid='ignore'):
         c = np.true_divide(1,d)
@@ -57,18 +59,19 @@ def invert_distance(d,nan=0,posinf=0,neginf=0):
 def inversedistancematrix_to_coulombmatrix(dinv,ProtonNumber):
     """
     Calculate Coulombmatrix from inverse distance Matrix plus nuclear charges/proton number.
+    
     Transform shape as (...,N,N) + (...,N) -> (...,N,N)
     
     Args:
-        dinv (numpy array): Inverse distance matrix defined at last two axis.
+        dinv (np.array): Inverse distance matrix defined at last two axis.
                             Array of shape (...,N,N) with N number of atoms storing inverse distances.
-        ProtonNumber (numpy array): Nuclear charges given in last dimension. 
+        ProtonNumber (np.array): Nuclear charges given in last dimension. 
                                     Order must match entries in inverse distance matrix.
                                     array of shape (...,N)
     
     Returns:
-        Numpy array with Coulombmatrix at last two dimension (...,N,N). 
-        Function multiplies Z_i*Z_j with 1/d_ij and set diagonal to 0.5*Z_ii^2.4
+        np.array: Numpy array with Coulombmatrix at last two dimension (...,N,N). 
+                  Function multiplies Z_i*Z_j with 1/d_ij and set diagonal to 0.5*Z_ii^2.4
     """  
     shape_z = ProtonNumber.shape
     a = np.expand_dims(ProtonNumber, axis = len(shape_z)-1)
@@ -82,17 +85,18 @@ def inversedistancematrix_to_coulombmatrix(dinv,ProtonNumber):
 
 def value_to_oneHot(vals,compare):
     """
-    Convert array of values e.g. nuclear charge to one-hot representation thereof. 
+    Convert array of values e.g. nuclear charge to one-hot representation thereof.
+    
     A dictionary of all possible values is required. 
     Expands shape from (...,) + (M,) -> (...,M)
     
     Args:
-        vals (numpy array): array of values to convert.
-        compare (numpy array): 1D-numpy array with a list of possible values.
+        vals (np.array): array of values to convert.
+        compare (np.array): 1D-numpy array with a list of possible values.
         
     Returns:
-        A one-hot representation of vals input with expanded last dimension to match
-        the compare dictionary. Entries are 1.0 if vals == compare[i] and 0.0 else
+        np.array: A one-hot representation of vals input with expanded last dimension to match
+                  the compare dictionary. Entries are 1.0 if vals == compare[i] and 0.0 else
     """
     comp = np.array(compare,dtype=vals.dtype)
     vals_shape = vals.shape
@@ -102,18 +106,20 @@ def value_to_oneHot(vals,compare):
     return out
 
 
-def coulombmatrix_to_inversedistance_proton(self,coulmat,unit_conversion=1):
-    """ 
-    Converts a coulomatrix back to inverse distancematrix + atomic number.
-    (...,N,N)-> (...,N,N)+(...,N)
+def coulombmatrix_to_inversedistance_proton(coulmat,unit_conversion=1):
+    """Convert a coulomatrix back to inverse distancematrix + atomic number.
+    
+    (...,N,N) -> (...,N,N) + (...,N)
     
     Args:
-        Coulombmatrix (numpy array): Full Coulombatrix of shape (...,N,N)
+        Coulombmatrix (np.array): Full Coulombatrix of shape (...,N,N)
         unit_conversion (float) : Whether to scale units for distance. Default is 1.
     
     Returns: 
-        Inverse Distance Matrix (numpy array) : Inverse distance of (...,N,N)
-        Atom Number (numpy array) : Corresponding diagonal as proton number
+        tuple: [inv_dist,z]
+        
+        - inv_dist(np.array): Inverse Distance Matrix of shape (...,N,N)
+        - z(np.array): Atom Number corresponding diagonal as proton number.
     """
     indslie = np.arange(0,coulmat.shape[-1])
     z = coulmat[...,indslie,indslie]
@@ -129,19 +135,19 @@ def coulombmatrix_to_inversedistance_proton(self,coulmat,unit_conversion=1):
 
 
 def distance_to_gaussdistance(Distance, GBins = 30, GRange = 5.0, GSigma = 0.2):
-    """ 
-    Convert distance array to smooth one-hot representation using Gaussian functions.
+    """Convert distance array to smooth one-hot representation using Gaussian functions.
+    
     Changes shape for gaussian distance (...,) -> (...,GBins)
     The Default values match units in Angstroem.
     
     Args:
-        Distance (numpy array): Array of distances of shape (...,)
+        Distance (np.array): Array of distances of shape (...,)
         GBins (int): number of Bins to sample distance from, default = 30
         GRange (value): maximum distance to be captured by bins, default = 5.0
         GSigma (value): sigma of the gaussian function, determining the width/sharpness, default = 0.2
     
     Returns:
-        Numpy array of gaussian distance with expanded last axis (...,GBins)
+        np.array: Numpy array of gaussian distance with expanded last axis (...,GBins)
     """
     gamma = 1/GSigma/GSigma*(-1)/2
     d_shape = Distance.shape
@@ -155,15 +161,18 @@ def distance_to_gaussdistance(Distance, GBins = 30, GRange = 5.0, GSigma = 0.2):
 
 def sort_distmatrix(DistanceMatrix):
     """
-    Sort a flexible shaped distance matrix along last dimension
+    Sort a flexible shaped distance matrix along last dimension.
+    
     Keeps shape (...,N,M) -> index (...,N,M) + sorted (...,N,M)
     
     Args:
-        DistanceMatrix (numpy array): Matrix of distances of shape (...,N,M)
+        DistanceMatrix (np.array): Matrix of distances of shape (...,N,M)
     
     Returns:
-        SortingIndex (numpy array): Indices of sorted last dimension entries. Shape (...,N,M)
-        SortedDistance (numpy array): Sorted Distance Matrix, sorted at last dimension.
+        tuple: [ortingIndex,SortedDistance]
+        
+        - SortingIndex (np.array): Indices of sorted last dimension entries. Shape (...,N,M)
+        - SortedDistance (np.array): Sorted Distance Matrix, sorted at last dimension.
     """
     SortingIndex = np.argsort(DistanceMatrix,axis=-1)
     SortedDistance = np.take_along_axis(DistanceMatrix, SortingIndex, axis=-1)
@@ -173,17 +182,19 @@ def sort_distmatrix(DistanceMatrix):
 
 def get_connectivity_from_inversedistancematrix(invdistmat,protons,radii_dict=None, k1=16.0, k2=4.0/3.0, cutoff=0.85,force_bonds=True): 
     """
-    Get connectivity table from inverse distance matrix defined at last dimensions (...,N,N) and corresponding bond-radii. Keeps shape with (...,N,N).
+    Get connectivity table from inverse distance matrix defined at last dimensions (...,N,N) and corresponding bond-radii.
+    
+    Keeps shape with (...,N,N).
     Covalent radii, from Pyykko and Atsumi, Chem. Eur. J. 15, 2009, 188-197. 
     Values for metals decreased by 10% according to Robert Paton's Sterimol implementation. 
     Partially based on code from Robert Paton's Sterimol script, which based this part on Grimme's D3 code
     
     Args:
-        invdistmat (numpy array):   inverse distance matrix defined at last dimensions (...,N,N)
-                                    distances must be in Angstroem not in Bohr  
-        protons (numpy array):      An array of atomic numbers matching the invdistmat (...,N),
-                                    for which the radii are to be computed.
-        radii_dict (numpy array):   covalent radii for each element. If default=None, stored values are used. Otherwise array with covalent bonding radii.
+        invdistmat (np.array):   inverse distance matrix defined at last dimensions (...,N,N)
+                                 distances must be in Angstroem not in Bohr  
+        protons (np.array):      An array of atomic numbers matching the invdistmat (...,N),
+                                 for which the radii are to be computed.
+        radii_dict (np.array):   covalent radii for each element. If default=None, stored values are used. Otherwise array with covalent bonding radii.
                                     example: np.array([0, 0.24, 0.46, 1.2, ...]) from {'H': 0.34, 'He': 0.46, 'Li': 1.2, ...}
         k1 (value):                 default = 16
         k2 (value):                 default = 4.0/3.0
@@ -191,7 +202,7 @@ def get_connectivity_from_inversedistancematrix(invdistmat,protons,radii_dict=No
         force_bonds (value):        whether to force at least one bond in the bond table per atom (default = True)
         
     Retruns:
-        Connectivity table with 1 for chemical bond and zero otherwise of shape (...,N,N) -> (...,N,N)
+        np.array: Connectivity table with 1 for chemical bond and zero otherwise of shape (...,N,N) -> (...,N,N)
     """
     #Dictionary of bond radii
     original_radii_dict = {'H': 0.34, 'He': 0.46, 'Li': 1.2, 'Be': 0.94, 'B': 0.77, 'C': 0.75, 'N': 0.71, 'O': 0.63, 'F': 0.64, 'Ne': 0.67, 'Na': 1.4, 'Mg': 1.25, 'Al': 1.13, 'Si': 1.04, 'P': 1.1, 'S': 1.02, 'Cl': 0.99, 'Ar': 0.96, 'K': 1.76, 'Ca': 1.54, 'Sc': 1.33, 'Ti': 1.22, 'V': 1.21, 'Cr': 1.1, 'Mn': 1.07, 'Fe': 1.04, 'Co': 1.0, 'Ni': 0.99, 'Cu': 1.01, 'Zn': 1.09, 'Ga': 1.12, 'Ge': 1.09, 'As': 1.15, 'Se': 1.1, 'Br': 1.14, 'Kr': 1.17, 'Rb': 1.89, 'Sr': 1.67, 'Y': 1.47, 'Zr': 1.39, 'Nb': 1.32, 'Mo': 1.24, 'Tc': 1.15, 'Ru': 1.13, 'Rh': 1.13, 'Pd': 1.19, 'Ag': 1.15, 'Cd': 1.23, 'In': 1.28, 'Sn': 1.26, 'Sb': 1.26, 'Te': 1.23, 'I': 1.32, 'Xe': 1.31, 'Cs': 2.09, 'Ba': 1.76, 'La': 1.62, 'Ce': 1.47, 'Pr': 1.58, 'Nd': 1.57, 'Pm': 1.56, 'Sm': 1.55, 'Eu': 1.51, 'Gd': 1.52, 'Tb': 1.51, 'Dy': 1.5, 'Ho': 1.49, 'Er': 1.49, 'Tm': 1.48, 'Yb': 1.53, 'Lu': 1.46, 'Hf': 1.37, 'Ta': 1.31, 'W': 1.23, 'Re': 1.18, 'Os': 1.16, 'Ir': 1.11, 'Pt': 1.12, 'Au': 1.13, 'Hg': 1.32, 'Tl': 1.3, 'Pb': 1.3, 'Bi': 1.36, 'Po': 1.31, 'At': 1.38, 'Rn': 1.42, 'Fr': 2.01, 'Ra': 1.81, 'Ac': 1.67, 'Th': 1.58, 'Pa': 1.52, 'U': 1.53, 'Np': 1.54, 'Pu': 1.55}
@@ -225,6 +236,7 @@ def get_connectivity_from_inversedistancematrix(invdistmat,protons,radii_dict=No
 def get_indexmatrix(shape,flatten=False):
     """
     Matrix of indices with a_ijk... = [i,j,k,..] for shape (N,M,...,len(shape)) with Indexlist being the last dimension.
+    
     Note: numpy indexing does not work this way but as indexlist per dimension
     
     Args:
@@ -232,7 +244,7 @@ def get_indexmatrix(shape,flatten=False):
         flatten (bool): whether to flatten the output or keep inputshape, default=False
     
     Returns: 
-        Index array of shape (N,M,...,len(shape)) e.g. [[[0,0],[0,1]],[[1,0],[1,1]]]
+        np.array: Index array of shape (N,M,...,len(shape)) e.g. [[[0,0],[0,1]],[[1,0],[1,1]]]
     """
     indarr = np.indices(shape)
     re_order =np.append(np.arange(1,len(shape)+1),0)
@@ -243,23 +255,22 @@ def get_indexmatrix(shape,flatten=False):
 
 
 def coordinates_from_distancematrix(DistIn,use_center = None,dim=3):
-    """
-    Computes list of coordinates from a distance matrix of shape (N,N)
+    """Compute list of coordinates from a distance matrix of shape (N,N).
+    
+    Uses vectorized Alogrithm:
+    http://scripts.iucr.org/cgi-bin/paper?S0567739478000522
+    https://www.researchgate.net/publication/252396528_Stable_calculation_of_coordinates_from_distance_information
+    no check of positive semi-definite or possible k-dim >= 3 is done here
+    performs svd from numpy
+    may even wok for (...,N,N) but not tested
     
     Args:
-        DistIn (numpy array): Distance matrix of shape (N,N) with D_ij = |r_i-r_j|
+        DistIn (np.array): Distance matrix of shape (N,N) with D_ij = |r_i-r_j|
         use_center (int): which atom should be the center, dafault = None means center of mass
         dim (int): the dimension of embedding, 3 is default
     
     Return:
-        List of Atom coordinates [[x_1,x_2,x_3],[x_1,x_2,x_3],...] 
-    
-    Uses vectorized Alogrithm:
-        http://scripts.iucr.org/cgi-bin/paper?S0567739478000522
-        https://www.researchgate.net/publication/252396528_Stable_calculation_of_coordinates_from_distance_information
-    no check of positive semi-definite or possible k-dim >= 3 is done here
-    performs svd from numpy
-    may even wok for (...,N,N) but not tested
+        np.array: List of Atom coordinates [[x_1,x_2,x_3],[x_1,x_2,x_3],...] 
     """
     DistIn = np.array(DistIn)
     dimIn = DistIn.shape[-1]   
@@ -280,14 +291,15 @@ def coordinates_from_distancematrix(DistIn,use_center = None,dim=3):
 def make_rotationmatrix(vector,angle):
     """
     Generate rotationmatrix around a given vector with a certain angle.
+    
     Only defined for 3 dimensions here.
     
     Args:
-        vector (numpy array, list): vector of rotation axis (3,) with (x,y,z)
+        vector (np.array, list): vector of rotation axis (3,) with (x,y,z)
         angle (value): angle in degrees ° to rotate around
     
     Returns:
-        rotation matrix R of shape (3,3) that performs the rotation with y = R*x
+        list: Rotation matrix R of shape (3,3) that performs the rotation with y = R*x
     """
     angle=angle/180.0*np.pi
     norm=(vector[0]**2.0+vector[1]**2.0+vector[2]**2.0)**0.5
@@ -306,20 +318,23 @@ def make_rotationmatrix(vector,angle):
     
 
 def rotate_to_principle_axis(coord):
-    """ 
-    Rotate a pointcloud to its principle axis. This can be a molecule but also some general data.
+    """Rotate a pointcloud to its principle axis.
+    
+    This can be a molecule but also some general data.
     It uses PCA via SVD from numpy.linalg.svd(). PCA from scikit uses SVD too (scipy.sparse.linalg).
-    
-    Args:
-        coord (numpy array): Array of points forming a pointcloud. Important: coord has shape (N,p)
-                             where N is the number of samples and p is the feature/coordinate dimension e.g. 3 for x,y,z
-    
-    Returns:
-        R (numpy array): rotaton matrix of shape (p,p) if input has (N,p)
-        rotated (numpy array): rotated pointcould of coord that was the input.
     
     Note:
         The data is centered before SVD but shifted back at the output.
+    
+    Args:
+        coord (np.array): Array of points forming a pointcloud. Important: coord has shape (N,p)
+                             where N is the number of samples and p is the feature/coordinate dimension e.g. 3 for x,y,z
+    
+    Returns:
+        tuple: [R,rotated]
+        
+        - R (np.array): rotaton matrix of shape (p,p) if input has (N,p)
+        - rotated (np.array): rotated pointcould of coord that was the input.
     """
     centroid_c = np.mean(coord,axis=0)
     sm = coord - centroid_c
@@ -332,27 +347,28 @@ def rotate_to_principle_axis(coord):
 
 
 def rigid_transform(A, B,correct_reflection=False):
-    """ 
-    Rotate and shift pointcloud A to pointcloud B. This should implement Kabsch algorithm.
+    """Rotate and shift pointcloud A to pointcloud B. This should implement Kabsch algorithm.
     
     Important: the numbering of points of A and B must match, no shuffled pointcloud.
     This works for 3 dimensions only. Uses SVD.
     
-    Args:
-        A (numpy array): list of points (N,3) to rotate (and translate)
-        B (numpy array): list of points (N,3) to rotate towards: A to B, where the coordinates (3) are (x,y,z)
-    
-    Returns:
-        A_rot (numpy array): Rotated and shifted version of A to match B
-        R (numpy array): Rotation matrix
-        t (numpy array): translation from A to B
-        
     Note: 
         Explanation of Kabsch Algorithm: https://en.wikipedia.org/wiki/Kabsch_algorithm
         For further literature
         https://link.springer.com/article/10.1007/s10015-016-0265-x
         https://link.springer.com/article/10.1007%2Fs001380050048
         maybe work for (...,N,3), not tested
+    
+    Args:
+        A (np.array): list of points (N,3) to rotate (and translate)
+        B (np.array): list of points (N,3) to rotate towards: A to B, where the coordinates (3) are (x,y,z)
+    
+    Returns:
+        list: [A_rot,R,t]
+            
+        - A_rot (np.array): Rotated and shifted version of A to match B
+        - R (np.array): Rotation matrix
+        - t (np.array): translation from A to B
     """
     A = np.transpose(np.array(A))
     B = np.transpose(np.array(B))
@@ -380,18 +396,21 @@ def rigid_transform(A, B,correct_reflection=False):
 def get_angles(coords,inds):
     """
     Compute angeles between coordinates (...,N,3) from a matching index list that has shape (...,M,3) with (ind0,ind1,ind2).
+    
     Angles are between ind1<(ind0,ind2) taking coords[ind]. The angle is oriented as ind1->ind0,ind1->ind2.
     
     Args:
-        coords (numpy array): list of coordinates of points (...,N,3)    
-        inds (numpy array): Index list of points (...,M,3) that means coords[i] with i in axis=-1.
+        coords (np.array): list of coordinates of points (...,N,3)    
+        inds (np.array): Index list of points (...,M,3) that means coords[i] with i in axis=-1.
     
     Returns:
-        angle_sin (numpy array): sin() of the angles between ind2<(ind1,ind3)
-        angle_cos (numpy array): cos() of the angles between ind2<(ind1,ind3)
-        angles (numpy array): angles in rads
-        norm_vec1 (numpy array): length of vector ind1,ind2a
-        norm_vec2 (numpy array): length of vector ind1,ind2b
+        list: [angle_sin,angle_cos,angles ,norm_vec1,norm_vec2]
+        
+        - angle_sin (np.array): sin() of the angles between ind2<(ind1,ind3)
+        - angle_cos (np.array): cos() of the angles between ind2<(ind1,ind3)
+        - angles (np.array): angles in rads
+        - norm_vec1 (np.array): length of vector ind1,ind2a
+        - norm_vec2 (np.array): length of vector ind1,ind2b
     """
     ind1 = inds[...,1]
     ind2a = inds[...,0]
@@ -412,15 +431,16 @@ def get_angles(coords,inds):
 def all_angle_combinations(ind1,ind2):
     """
     Get all angles between ALL possible bonds also unrelated bonds e.g. (1,2) and (17,20) which are not connected. Input shape is (...,N).
+    
     Note: This is mostly unpractical and not wanted, see make_angle_list for normal use.
     
     Args:
-        ind1 (numpy array): Indexlist of start index for a bond. This must be sorted. Shape (...,N)
-        ind2 (numpy array): Indexlist of end index for a bond. Shape (...,N)
+        ind1 (np.array): Indexlist of start index for a bond. This must be sorted. Shape (...,N)
+        ind2 (np.array): Indexlist of end index for a bond. Shape (...,N)
     
     Returns
-        index touples of shape (...,N*N/2-N,2,2) where the bonds are specified at last axis and
-        the bond pairs at axis=-2
+        np.array: index touples of shape (...,N*N/2-N,2,2) where the bonds are specified at last axis and
+                  the bond pairs at axis=-2
     """
     #For all angels between unconncected bonds, possible for (...,N)
     indb = np.concatenate([np.expand_dims(ind1,axis=-1),np.expand_dims(ind2,axis=-1)],axis=-1)
@@ -437,18 +457,18 @@ def all_angle_combinations(ind1,ind2):
 
 
 def make_angle_list(ind1,ind2):
-    """
-    Generate list of indices that match all angles for connections defined by (ind1,ind2) for each
-    unique index in ind1, meaning for each center. ind1 should be sorted.
+    """Generate list of indices that match all angles for connections defined by (ind1,ind2).
+    
+    For each unique index in ind1, meaning for each center. ind1 should be sorted.
     Vectorized but requires memory for connections Max_bonds_per_atom*Number_atoms. Uses masking
     
     Args:
-        ind1 (numpy array): Indexlist of start index for a bond. This must be sorted. Shape (N,)
-        ind2 (numpy array): Indexlist of end index for a bond. Shape (N,)
+        ind1 (np.array): Indexlist of start index for a bond. This must be sorted. Shape (N,)
+        ind2 (np.array): Indexlist of end index for a bond. Shape (N,)
     
     Returns:
-            out (numpy array):  Indexlist containing an angle-index-set. Shape (M,3)
-                                Where the angle is defined by 0-1-2 as 1->0,1->2 or 1<(0,2) 
+        out (np.array):  Indexlist containing an angle-index-set. Shape (M,3)
+                            Where the angle is defined by 0-1-2 as 1->0,1->2 or 1<(0,2) 
     """
     #Get unique atoms as center for bonds
     n1_uni, n1_counts = np.unique(ind1,return_counts=True)
@@ -504,8 +524,10 @@ def define_adjacency_from_distance(DistanceMatrix,max_distance=np.inf,max_neighb
         self_loops (bool, optional): Allow self-loops on diagonal. Defaults to False.
 
     Returns:
-        GraphAdjacency (np.array): Adjacency Matrix of shape (...,N,N) of dtype=np.bool.
-        GraphIndices (np.array): Flatten indizes from former array that have Adjacency == True.
+        tuple: [GraphAdjacency,GraphIndices]
+        
+        - GraphAdjacency (np.array): Adjacency Matrix of shape (...,N,N) of dtype=np.bool.
+        - GraphIndices (np.array): Flatten indizes from former array that have Adjacency == True.
 
     """
     DistanceMatrix = np.array(DistanceMatrix)
@@ -547,3 +569,26 @@ def define_adjacency_from_distance(DistanceMatrix,max_distance=np.inf,max_neighb
     GraphIndices = GraphIndices[GraphAdjacency]
     return GraphAdjacency,GraphIndices
 
+
+def geometry_from_coulombmat(coulmat,unit_conversion=1):
+    """
+    Generate a geometry from Coulombmatrix.
+
+    Args:
+        coulmat (np.array): Coulombmatrix of shape (N,N).
+        unit_conversion (value, optional): If untis are converted from or to A. Defaults to 1.
+
+    Returns:
+        list: [ats,cords]
+        
+        - ats (list): List of atoms e.g. ['C','C'].
+        - cords (np.array): Coordinates of shape (N,3).
+
+    """
+    # Does not require mol backend inference, just self.mol_from_geometry
+    invd,pr = coulombmatrix_to_inversedistance_proton(coulmat,unit_conversion)
+    dist = invert_distance(invd)
+    cords = coordinates_from_distancematrix(dist)    
+    InverseGlobalProtonDict = {1: 'H', 2: 'He', 3: 'Li', 4: 'Be', 5: 'B', 6: 'C', 7: 'N', 8: 'O', 9: 'F', 10: 'Ne', 11: 'Na', 12: 'Mg', 13: 'Al', 14: 'Si', 15: 'P', 16: 'S', 17: 'Cl', 18: 'Ar', 19: 'K', 20: 'Ca', 21: 'Sc', 22: 'Ti', 23: 'V', 24: 'Cr', 25: 'Mn', 26: 'Fe', 27: 'Co', 28: 'Ni', 29: 'Cu', 30: 'Zn', 31: 'Ga', 32: 'Ge', 33: 'As', 34: 'Se', 35: 'Br', 36: 'Kr', 37: 'Rb', 38: 'Sr', 39: 'Y', 40: 'Zr', 41: 'Nb', 42: 'Mo', 43: 'Tc', 44: 'Ru', 45: 'Rh', 46: 'Pd', 47: 'Ag', 48: 'Cd', 49: 'In', 50: 'Sn', 51: 'Sb', 52: 'Te', 53: 'I', 54: 'Xe', 55: 'Cs', 56: 'Ba', 57: 'La', 58: 'Ce', 59: 'Pr', 60: 'Nd', 61: 'Pm', 62: 'Sm', 63: 'Eu', 64: 'Gd', 65: 'Tb', 66: 'Dy', 67: 'Ho', 68: 'Er', 69: 'Tm', 70: 'Yb', 71: 'Lu', 72: 'Hf', 73: 'Ta', 74: 'W', 75: 'Re', 76: 'Os', 77: 'Ir', 78: 'Pt', 79: 'Au', 80: 'Hg', 81: 'Tl', 82: 'Pb', 83: 'Bi', 84: 'Po', 85: 'At', 86: 'Rn', 87: 'Fr', 88: 'Ra', 89: 'Ac', 90: 'Th', 91: 'Pa', 92: 'U', 93: 'Np', 94: 'Pu', 95: 'Am', 96: 'Cm', 97: 'Bk', 98: 'Cf', 99: 'Es', 100: 'Fm', 101: 'Md', 102: 'No', 103: 'Lr', 104: 'Rf', 105: 'Db', 106: 'Sg', 107: 'Bh', 108: 'Hs', 109: 'Mt', 110: 'Ds', 111: 'Rg', 112: 'Cn', 113: 'Nh', 114: 'Fl', 115: 'Mc', 116: 'Lv', 117: 'Ts', 118: 'Og', 119: 'Uue'}
+    ats = [InverseGlobalProtonDict[x] for x in pr]
+    return ats,cords

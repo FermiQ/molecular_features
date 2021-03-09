@@ -1,7 +1,6 @@
-"""
-Casting and transferring or loading mol related formats with openbabel.
+"""Functions for openbabel.
 
-@author: Patrick Reiser,
+Specific functions for molecular features.
 """
 
 import openbabel
@@ -10,15 +9,14 @@ import numpy as np
 
 def ob_build_xyz_string_from_list(atoms,coords):
     """
-    Make a xyz string from atom and coordinate list
+    Make a xyz string from atom and coordinate list.
 
     Args:
         atoms (list): Atom list of type ['H','C','H',...].
         coords (array): Coordinate list of shape (N,3).
 
     Returns:
-        xyz_str (str): XYZ string.
-
+        str: XYZ string for a xyz file.
     """
     xyz_str = str(int(len(atoms))) + "\n"
     for i in range(len(atoms)):
@@ -34,9 +32,10 @@ def ob_readXYZs(filename):
         filename (str): Filepath.
 
     Returns:
-        elements (list): Coordinate list of shape (Molecules,Atoms,3).
-        coords (list): Molecule list of shape (Molecules,Atoms).
-
+        tuple: [elements,coords]
+        
+        - elements (list): Coordinate list of shape (Molecules,Atoms,3).
+        - coords (list): Molecule list of shape (Molecules,Atoms).
     """
     infile=open(filename,"r")
     coords=[[]]
@@ -64,11 +63,12 @@ def ob_get_bond_table_from_coordinates(atoms,coords):
         coords (array): Coordinate list of shape (N,3).
 
     Returns:
-        ob_ats (list): Atom list of type ['H','Car','O2',...] of OBType i.e. with aromatic and state info.
-        ob_proton (list): Atomic Number of atoms as list.
-        bonds (list): Bond information of shape [i,j,order].
-        ob_coord (list): Coordinates as list.
-
+        tuple: ob_ats,ob_proton,bonds,ob_coord
+        
+        - ob_ats (list): Atom list of type ['H','Car','O2',...] of OBType i.e. with aromatic and state info.
+        - ob_proton (list): Atomic Number of atoms as list.
+        - bonds (list): Bond information of shape [i,j,order].
+        - ob_coord (list): Coordinates as list.
     """
     obConversion = openbabel.OBConversion()
     #obConversion.SetInAndOutFormats("xyz", "pdb")
@@ -87,7 +87,8 @@ def ob_get_bond_table_from_coordinates(atoms,coords):
     for i in range(mol.NumBonds()):
         bnd = mol.GetBondById(i)
         #bnd = mol.GetBond(i)
-        bonds.append([bnd.GetBeginAtomIdx()-1,bnd.GetEndAtomIdx()-1,bnd.GetBondOrder()]) 
+        if(bnd != None):
+            bonds.append([bnd.GetBeginAtomIdx()-1,bnd.GetEndAtomIdx()-1,bnd.GetBondOrder()]) 
     ob_ats = []
     ob_coord = []
     ob_proton = []

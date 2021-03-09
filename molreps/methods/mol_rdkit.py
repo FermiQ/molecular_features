@@ -1,14 +1,13 @@
-"""
-Functions for molecular properties from rdkit.
+"""Functions for molecular properties from rdkit.
 
 Note: All functions are supposed to work out of the box without any dependencies, i.e. do not depend on each other.
-
-@author: Patrick Reiser,
 """
 
 import rdkit
 import rdkit.Chem.AllChem
 import numpy as np
+
+from molreps.methods.geo_npy import coordinates_to_distancematrix,define_adjacency_from_distance
 
 
 def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
@@ -21,7 +20,7 @@ def rdkit_mol_from_atoms_bonds(atoms,bonds,sani=False):
         sani (bool, optional): Whether to sanitize molecule. Defaults to False.
 
     Returns:
-        mol (rdkit.Chem.Mol): Rdkit Mol object.
+        rdkit.Chem.Mol: Rdkit Mol object. Molecule generated.
 
     """
     bond_names =  {'AROMATIC': rdkit.Chem.rdchem.BondType.AROMATIC, 'DATIVE': rdkit.Chem.rdchem.BondType.DATIVE, 'DATIVEL': rdkit.Chem.rdchem.BondType.DATIVEL, 'DATIVEONE': rdkit.Chem.rdchem.BondType.DATIVEONE, 'DATIVER': rdkit.Chem.rdchem.BondType.DATIVER, 'DOUBLE': rdkit.Chem.rdchem.BondType.DOUBLE, 'FIVEANDAHALF': rdkit.Chem.rdchem.BondType.FIVEANDAHALF, 'FOURANDAHALF': rdkit.Chem.rdchem.BondType.FOURANDAHALF, 'HEXTUPLE': rdkit.Chem.rdchem.BondType.HEXTUPLE, 'HYDROGEN': rdkit.Chem.rdchem.BondType.HYDROGEN, 'IONIC': rdkit.Chem.rdchem.BondType.IONIC, 'ONEANDAHALF': rdkit.Chem.rdchem.BondType.ONEANDAHALF, 'OTHER': rdkit.Chem.rdchem.BondType.OTHER, 'QUADRUPLE': rdkit.Chem.rdchem.BondType.QUADRUPLE, 'QUINTUPLE': rdkit.Chem.rdchem.BondType.QUINTUPLE, 'SINGLE': rdkit.Chem.rdchem.BondType.SINGLE, 'THREEANDAHALF': rdkit.Chem.rdchem.BondType.THREEANDAHALF, 'THREECENTER': rdkit.Chem.rdchem.BondType.THREECENTER, 'TRIPLE': rdkit.Chem.rdchem.BondType.TRIPLE, 'TWOANDAHALF': rdkit.Chem.rdchem.BondType.TWOANDAHALF, 'UNSPECIFIED': rdkit.Chem.rdchem.BondType.UNSPECIFIED, 'ZERO': rdkit.Chem.rdchem.BondType.ZERO}
@@ -63,7 +62,7 @@ def rdkit_add_conformer(mol,coords,assignID = False):
         assignID (bool,int): To assing conformer iD. Default is False.
 
     Returns:
-        mol (rdkit.Chem.Mol): Mol Object with added conformer.
+        rdkit.Chem.Mol: Mol Object with added conformer.
 
     """
     conf = rdkit.Chem.Conformer(len(coords))
@@ -72,6 +71,26 @@ def rdkit_add_conformer(mol,coords,assignID = False):
     mol.AddConformer(conf,assignId=assignID)
     return mol
 
+
+
+def rdkit_make_mol_from_structure(atoms,bondlist,coordinates=None):
+    """
+    Make a mol object with 
+
+    Args:
+        atoms (list): List of atoms (N,).
+        bondlist (list, np.array): Bond list matching atom index. Shape (N,3) or (N,2).
+                                   For (N,3) last entry can give bond order.
+        coordinates (np.array, optional): Coordinates of Atoms of shape (N,3). Defaults to None.
+
+    Returns:
+        rdkit.Chem.Mol: Mol Object with added conformer.
+    """
+    mol = rdkit_mol_from_atoms_bonds(atoms,bondlist)
+    if(coordinates is not None):
+        rdkit_add_conformer(mol,coordinates)
+    return mol
+    
 
 
 def rdkit_atom_list(mol,key,method,args={}):
@@ -85,7 +104,7 @@ def rdkit_atom_list(mol,key,method,args={}):
         args (dict, optional): Optinal arguments for class method. Defaults to {}.
 
     Returns:
-        G (TYPE): Atomlist that can be used in a graph of shape [i, {key:AtomicNum}]
+        list: Atomlist that can be used in a networkx graph of shape [(i, {key: property})]
 
     """
         #lenats = len(mol.GetAtoms())
@@ -94,7 +113,6 @@ def rdkit_atom_list(mol,key,method,args={}):
         attr = {key: method(atm,**args)}
         G.append((i, attr))
     return G
-
 
 
 
@@ -111,7 +129,7 @@ def rdkit_bond_list(mol,key,method,args={},trafo=int):
         trafo (func): Casting or trafo funciton. Default is int.
 
     Returns:
-        G (list): Bondlist that can be used in a graph of shape [(i,j), {key:BondType}]
+        list: Bondlist that can be used in a networkx graph of shape [(i,j, {key: property})]
 
     """
     #lenats = len(mol.GetAtoms())
@@ -125,3 +143,36 @@ def rdkit_bond_list(mol,key,method,args={},trafo=int):
     return G
 
 
+def rdkit_bond_distance_list(mol,key,conf_selection=0,methods='ETKDG',seed =0xf00d, max_distance =np.inf,max_partners=np.inf,bonds_only=True):
+    """
+    Generate bond list with distance information from rdkit.mol.
+
+    Args:
+        mol (rdkit.Chem.Mol): Mol object to get information from.
+        key (str, optional): Key of property to put in list.
+        conf_selection (int, optional): Select a conformer. Defaults to 0.
+        methods (string, optional): Method to generate conformer if none exist. Defaults to 'ETKDG'.
+        seed (TYPE, optional): Random seed. Defaults to 0xf00d.
+        max_distance (value, optional): Maximum distance to allow bonds. Defaults to np.inf.
+        max_partners (value, optional): Maximum nieghbour to allow bonds. Defaults to np.inf.
+        bonds_only (TYPE, optional): Only take actual chemical bonds as bonds. Defaults to True.
+
+    Returns:
+        list: Bondlist that can be used in a networkx graph of shape [(i,j, {key: distance})].
+
+    """
+    if(not len(mol.GetConformers()) > 0 ):
+        retval = rdkit.Chem.AllChem.EmbedMolecule(mol,randomSeed=seed)
+    dist_mat = coordinates_to_distancematrix(np.array(mol.GetConformers()[conf_selection].GetPositions()))
+    adj_dist, idx_dist = define_adjacency_from_distance(dist_mat,max_distance,max_partners,exclusive=True)
+    if(bonds_only == True):
+        bonds = rdkit_bond_list(mol,key,rdkit.Chem.rdchem.Bond.GetBondType)
+        for x in bonds:
+            # Replace Bond-type by distance
+            x[2][key] = dist_mat[x[0],x[1]]
+        return bonds
+    else:    
+        out_list = []
+        for i in range(len(idx_dist)):
+            out_list.append((idx_dist[i][0],idx_dist[i][1],{ key : dist_mat[idx_dist[i][0],idx_dist[i][1]]}))    
+    return out_list
