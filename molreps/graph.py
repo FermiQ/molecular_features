@@ -1,28 +1,20 @@
-"""
-Main graph generator for making molecular graphs.
+"""Main graph generator for making molecular graphs.
 
 It uses networkx as graph interface and a mol object from rdkit, ase, pymatgen or similar.
-
-@author: Patrick Reiser,
 """
 
 #Necessary
 import networkx as nx
-
-#python
-from molreps.methods.props_py import element_list_to_value,get_atom_property_dicts
-
-#Numpy
 import numpy as np
-from molreps.methods.geo_npy import coordinates_to_distancematrix,define_adjacency_from_distance
-from molreps.methods.geo_npy import coulombmatrix_to_inversedistance_proton,coordinates_from_distancematrix,invert_distance
+
 
 #Rdkit
 try:
     import rdkit
+    import rdkit.Chem.Descriptors
     import rdkit.Chem.AllChem
     MOLGRAPH_RDKIT_AVAILABLE = True
-    from molreps.methods.mol_rdkit import rdkit_atom_list,rdkit_bond_list
+    from molreps.methods.mol_rdkit import rdkit_atom_list,rdkit_bond_list,rdkit_bond_distance_list
     from molreps.methods.mol_rdkit import rdkit_mol_from_atoms_bonds,rdkit_add_conformer
 except:
     print("Warning: Rdkit not found for mol class.")
@@ -38,305 +30,105 @@ except:
     MOLGRAPH_OPENBABEL_AVAILABLE = False
 
 
+###############################################################################
+   
 
-class MolInterface():
+if MOLGRAPH_RDKIT_AVAILABLE == True:
     
-    _nodes_implemented = ['proton','symbol']
-    _edges_implemented = ['bond','distance']
-    _state_implemented = ['size']
+    def rdkit_get_property_atoms(mol,key,prop,**kwargs):
     
-    def __init__(self,**kwargs):
-        # Determine available mol libs
-        self.mol_libs_avail = []
-        if(MOLGRAPH_RDKIT_AVAILABLE == True):
-            self.mol_libs_avail.append("rdkit")
-        if(MOLGRAPH_OPENBABEL_AVAILABLE == True):
-            self.mol_libs_avail.append("openbabel")
-        
-        # Main mol object to use.
-        self.mol_libs_use = "rdkit"
-        self.mol = None
-    
-    ###########################################################################
-    
-    # Conformere management with different backends
-    def _has_conformere(self):
-        if(self.mol_libs_use == "rdkit"):
-            conf_info =  len(self.mol.GetConformers()) > 0 
-            return conf_info
-    
-    def _get_conformere(self,conf_selection=0):
-        if(self._has_conformere()):
-            if(self.mol_libs_use == "rdkit"):
-                return np.array(self.mol.GetConformers()[conf_selection].GetPositions())
-
-    
-    def conformation(self,mol_lib='rdkit',methods='ETKDG',conf_selection=0):
-        if(self.mol_libs_use == "rdkit"):
-            seed =0xf00d 
-            retval = rdkit.Chem.AllChem.EmbedMolecule(self.mol,randomSeed=seed)
-            out = self.mol.GetConformers()[conf_selection].GetPositions()
-            return np.array(out)
-       
-    ###########################################################################
-        
-    # Make mol class with different backends
-    def mol_from_smiles(self,in_smile):
-        
-        if(self.mol_libs_use == "rdkit"):
-            m = rdkit.Chem.MolFromSmiles(in_smile)
-            m = rdkit.Chem.AddHs(m)
-            self.mol = m
-            return self.mol
-    
-    def mol_from_structure(self,atoms,bondlist,coordinates=None):
-
-        if(self.mol_libs_use == "rdkit"):
-            self.mol = rdkit_mol_from_atoms_bonds(atoms,bondlist)
-            if(coordinates is not None):
-                rdkit_add_conformer(self.mol,coordinates)
-            return self.mol
-    
-    
-    def mol_from_geometry(self,atoms,coordinates,backend='openbabel'):
-
-        if("openbabel" in self.mol_libs_avail and backend=='openbabel'):
-            _,_,bonds,_ = ob_get_bond_table_from_coordinates
-            return self.mol_from_structure(atoms,bonds,coordinates)
+        atom_fun_dict={
+            "proton" : rdkit.Chem.rdchem.Atom.GetAtomicNum,
+            "symbol" : rdkit.Chem.rdchem.Atom.GetSymbol,
+            "num_Hs" : rdkit.Chem.rdchem.Atom.GetNumExplicitHs,
+            "aromatic" : rdkit.Chem.rdchem.Atom.GetIsAromatic,
+            "degree" : rdkit.Chem.rdchem.Atom.GetTotalDegree,
+            "valence" : rdkit.Chem.rdchem.Atom.GetTotalValence,
+            "mass" : rdkit.Chem.rdchem.Atom.GetMass,
+            "in_ring" : rdkit.Chem.rdchem.Atom.IsInRing,
+            "hybridization" : rdkit.Chem.rdchem.Atom.GetHybridization,
+            }
+        if(prop in atom_fun_dict):
+            return rdkit_atom_list(mol,key,atom_fun_dict[prop])
         else:
-            print("Will be implemented soon")
-    
-    
-    def mol_from_coulombmat(self,coulmat,unit_conversion=1):
-
-        # Does not require mol backend inference, just self.mol_from_geometry
-        invd,pr = coulombmatrix_to_inversedistance_proton(coulmat,unit_conversion)
-        dist = invert_distance(invd)
-        cords = coordinates_from_distancematrix(dist)
-        ats = element_list_to_value(pr,get_atom_property_dicts("FromProton"))
-        return self.mol_from_geometry(ats,cords)
-    
-    ###########################################################################
-    
-    # Property calculation with different mol backends
-    def _find_nodes_proton(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetAtomicNum)
-
-    def _find_nodes_atomlabel(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetSymbol)
-    
-    def _find_edges_bond_type(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.GetBondType)
-    
-    def _find_edges_distance(self,key,bonds_only=True,max_distance=None,max_partners=None):
-        #No check mol-lib necessary, indirect via _make_edges_bond_type() and conformation()
-        if(not self._has_conformere()):
-            self.conformation()
-        dist_mat = coordinates_to_distancematrix(self._get_conformere())
-        adj_dist, idx_dist = define_adjacency_from_distance(dist_mat,max_distance,max_partners)
-        if(bonds_only == True):
-            bonds = self._find_edges_bond_type(key) # use distance key
-            for x in bonds:
-                # Replace Bond-type by distance
-                x[2][key] = dist_mat[x[0],x[1]]
-            return bonds
-        else:    
-            out_list = []
-            for i in range(len(idx_dist)):
-                out_list.append((idx_dist[i][0],idx_dist[i][1],{ key : dist_mat[idx_dist[i][0],idx_dist[i][1]]}))    
-        return out_list
-
-    def _find_state_size(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return {key: len(self.mol.GetAtoms())}   
+            raise NotImplementedError("Property",prop,"is not predefined, use costum function.")
         
-    def _find_nodes_degree(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetTotalDegree)
     
-    def _find_nodes_valence(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetTotalValence)
-    
-    def _find_nodes_aromatic(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetIsAromatic)    
-    
-    def _find_nodes_NumHs(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetNumExplicitHs)  
-    
-    def _find_nodes_IsInRing(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.IsInRing) 
-    
-    def _find_nodes_hybridization(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetHybridization) 
-
-    def _find_nodes_mass(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_atom_list(self.mol,key,rdkit.Chem.rdchem.Atom.GetMass) 
- 
-    def _find_edges_aromatic(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.GetIsAromatic)
-
-    def _find_edges_conjugated(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.GetIsConjugated)
+    def rdkit_get_property_bonds(mol,key,prop,**kwargs):
         
-    def _find_edges_ring(self,key):
-        if(self.mol_libs_use == "rdkit"):
-            return rdkit_bond_list(self.mol,key,rdkit.Chem.rdchem.Bond.IsInRing)
+        bond_fun_dict = {
+            "bond" : rdkit.Chem.rdchem.Bond.GetBondType,
+            "is_aromatic" : rdkit.Chem.rdchem.Bond.GetIsAromatic,
+            "is_conjugated" : rdkit.Chem.rdchem.Bond.GetIsConjugated,
+            "in_ring" : rdkit.Chem.rdchem.Bond.IsInRing
+            }
+        
+        if(prop in bond_fun_dict):
+            return rdkit_bond_list(mol,key,bond_fun_dict[prop])
+        elif(prop == "distance"):
+            return rdkit_bond_distance_list(mol,key,**kwargs)    
+        else:
+            raise NotImplementedError("Property",prop,"is not predefined, use costum function.")
+        
+    
+    def rdkit_get_property_molstate(mol,key,prop,**kwargs):
+        state_fun_dict = {
+            "mol_weight" : rdkit.Chem.Descriptors.ExactMolWt
+            }
+        if(prop in state_fun_dict):
+            return {key: state_fun_dict[prop](mol)}
+        elif(prop == "size"):
+            return {key: mol.GetNumAtoms()}
+        else:
+            raise NotImplementedError("Property",prop,"is not predefined, use costum function.")
+    
+    
+    
+    
 
+###############################################################################
 
-
-
+# Main class to make graph
 class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
     
+    _mols_implemented = {'rdkit': {'nodes': ["proton" ,"symbol","num_Hs","aromatic","degree","valence","mass","in_ring","hybridization"] ,
+                                   'edges': ["bond","is_aromatic","is_conjugated","in_ring","distance"] ,
+                                   'state': ["mol_weight","size"]}
+                         }
+
     
-    def __init__(self,**kwargs):
+    def __init__(self,mol = None, **kwargs):
         super(MolGraph, self).__init__(**kwargs)
           
-        self.mol = MolInterface()
+        self.mol = mol
         # State Variable
         self._graph_state = {}
-    
-
-    ###########################################################################
+        self.mol_type = None
+        if(isinstance(mol,rdkit.Chem.Mol)):
+            self.mol_type = "rdkit"
         
-    # Make mol interface with different backends
-    def mol_from_smiles(self,in_smile):
-        """
-        Generate mol object from a smile string.
-
-        Args:
-            in_smile (str): smile.
-
-        Returns:
-            MolInterface: Representation of the molecule.
-
-        """ 
-        return self.mol.mol_from_smiles(in_smile)
-    
-    def mol_from_structure(self,atoms,bondlist,coordinates=None):
-        """
-        Generate a mol object from a given strucutre. 
-
-        Args:
-            atoms (list): Atomlist e.g. ['C','H',"H"].
-            bondlist (list):    Bondlist of shape (N,3). With a bond as (i,j,type)
-                                The bondtype is directly transferred to backend.
-            coordinates (array, optional): Coordinates for a given conformere of shape (N,3). Defaults to None.
-
-        Returns:
-            MolInterface: Representation of the molecule.
-
-        """
-        return self.mol.mol_from_structure(atoms,bondlist,coordinates=None)
-    
-    
-    def mol_from_geometry(self,atoms,coordinates,backend='openbabel'):
-        """
-        Generate a mol class from coordinates and atom Type.
-        
-        Note here the bond order and type has to be determined. This is not 
-        strictly unique and can differ in the method used,
-
-        Args:
-            atoms (list): Atomlist e.g. ['C','H',"H"].
-            coordinates (arry): List of shape (N,3)
-            backend (str): If a specific mol lib should be used.
-
-        Returns:
-             MolInterface: Representation of the molecule.
-
-        """
-        return self.mol.mol_from_geometry(atoms,coordinates,backend='openbabel')
-    
-    
-    def mol_from_coulombmat(self,coulmat,unit_conversion=1):
-        """
-        Map coulombmatrix to mol class. 
-        
-        This is however a slow and difficult problem as there is not strictly a unique mol.
-
-        Args:
-            coulmat (np.array): Coulombmatrix of shape (N,N).
-            unit_conversion (TYPE, optional): If distance is not in Angström (often the case). Defaults to 1.
-
-        Returns:
-            MolInterface: Representation of the molecule.
-
-        """
-        return self.mol.mol_from_coulombmat(coulmat,unit_conversion=1)
-        
-   
-    ###########################################################################
-    
-
-    # Conformere management with different backends
-    def _has_conformere(self):
-        return self.mol._has_conformere()
-    
-    def _get_conformere(self,conf_selection=0):
-        return self.mol._get_conformere(conf_selection=0)
-    
-    def conformation(self,methods='ETKDG',conf_selection=0,mol_lib='rdkit'):
-        return self.mol.conformation(mol_lib,methods,conf_selection)
     
     ###########################################################################
     
     # Check for identifier
-    def _make_edges(self,key,propy,args):
-        if(propy=="bond"):
-            self.add_edges_from(self.mol._find_edges_bond_type(key))
-        elif(propy=="distance"):
-            self.add_edges_from(self.mol._find_edges_distance(key,**args))
-        elif(propy=="inverse_distance"):
-            pass
-        elif(propy=="is_aromatic"):
-            self.add_edges_from(self.mol._find_edges_aromatic(key))
-        elif(propy=="is_conjugated"):
-            self.add_edges_from(self.mol._find_edges_conjugated(key))
-        elif(propy=="in_ring"):
-            self.add_edges_from(self.mol._find_edges_ring(key))
+    def _make_edges(self,key,propy,**args):
+        if(self.mol_type == "rdkit"):
+            self.add_edges_from(rdkit_get_property_bonds(self.mol,key=key,prop=propy,**args))
         else:
-            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._nodes_implemented)
-    
+            raise ValueError("Property identifier is not implemented for mol type",self.mol_type)
         
-    def _make_nodes(self,key,propy,args):
-        if(propy=="proton"):
-            self.add_nodes_from(self.mol._find_nodes_proton(key))
-        elif(propy=="symbol"):
-            self.add_nodes_from(self.mol._find_nodes_atomlabel(key))
-        elif(propy=="num_Hs"):
-            self.add_nodes_from(self.mol._find_nodes_NumHs(key))
-        elif(propy=="aromatic"):
-            self.add_nodes_from(self.mol._find_nodes_aromatic(key))
-        elif(propy=="degree"):
-            self.add_nodes_from(self.mol._find_nodes_degree(key))
-        elif(propy=="valence"):
-            self.add_nodes_from(self.mol._find_nodes_valence(key))
-        elif(propy=="mass"):
-            self.add_nodes_from(self.mol._find_nodes_mass(key))
-        elif(propy=="in_ring"):
-            self.add_nodes_from(self.mol._find_nodes_IsInRing(key))
-        elif(propy=="hybridization"):
-            self.add_nodes_from(self.mol._find_nodes_hybridization(key))
+    def _make_nodes(self,key,propy,**args):
+        if(self.mol_type == "rdkit"):
+            self.add_nodes_from(rdkit_get_property_atoms(self.mol,key=key,prop=propy,**args))
         else:
-            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._edges_implemented)
+            raise ValueError("Property identifier is not implemented for mol type",self.mol_type)   
           
-    def _make_state(self,key,propy,args):
-        if(propy=="size"):
-            self._graph_state.update(self.mol._find_state_size(key))
+    def _make_state(self,key,propy,**args):
+        if(self.mol_type == "rdkit"):
+            self._graph_state.update(rdkit_get_property_molstate(self.mol,key=key,prop=propy,**args))
         else:
-            raise ValueError("Property identifier",propy,"is not implemented. Choose",self._state_implemented)
+            raise ValueError("Property identifier is not implemented for mol type",self.mol_type)   
     
     ###########################################################################
     
@@ -351,12 +143,13 @@ class MolGraph(nx.Graph):
                          "hybridization" : "hybridization"
                          },
                   edges = {'bond' : 'bond',
-                           'distance' : {'class':'distance', 'args':{'bonds_only':True,'max_distance':None,'max_partners':None}},
+                           'distance' : {'class':'distance', 'args':{'bonds_only':True,'max_distance':np.inf ,'max_partners': np.inf}},
                            "is_aromatic" : "is_aromatic",
                            "is_conjugated" : "is_conjugated",
                            "in_ring" : "in_ring",
                            },
-                  state = {'size' : 'size' 
+                  state = {'size' : 'size',
+                           "mol_weight" : "mol_weight"
                            }):
         """
         Construct graph from mol instance.
@@ -367,7 +160,7 @@ class MolGraph(nx.Graph):
         key : {'class': identifier, 'args':{ args_dict }}
         Otherwise you can provide a costum method via the the identifier dict of the form:
         key : {'class': function/class, 'args':{ args_dict }}
-        The callable object of 'class' must accept as first argument this instance. Then key, and then args.
+        The callable object of 'class' must accept as mol and key arguments this instance. Then key,mol and then additiona **args.
         Info: This matches tf.keras identifier scheme.
         
         Args:
@@ -389,13 +182,13 @@ class MolGraph(nx.Graph):
         
         for key,value in nodes.items():
             if(isinstance(value,str) == True):
-                self._make_nodes(key,value,None)
+                self._make_nodes(key,value)
             elif(isinstance(value,dict) == True): 
                 if('class' not in value):
                     raise ValueError(" 'class' method must be defined in",value)
                 if(isinstance(value['class'],str) == True):
-                    args = value['args'] if 'args' in value else None
-                    self._make_nodes(key,value['class'],args)
+                    args = value['args'] if 'args' in value else {}
+                    self._make_nodes(key,value['class'],**args)
                 else:
                     #Custom function/class here
                     args = value['args'] if 'args' in value else {}
@@ -405,13 +198,13 @@ class MolGraph(nx.Graph):
                 
         for key,value in edges.items():
             if(isinstance(value,str) == True):
-                self._make_edges(key,value,None)
+                self._make_edges(key,value)
             elif(isinstance(value,dict) == True): 
                 if('class' not in value):
                     raise ValueError(" 'class' method must be defined in",value)
                 if(isinstance(value['class'],str) == True):
-                    args = value['args'] if 'args' in value else None
-                    self._make_edges(key,value['class'],args)
+                    args = value['args'] if 'args' in value else {}
+                    self._make_edges(key,value['class'],**args)
                 else:
                     #Custom function/class here
                     args = value['args'] if 'args' in value else {}
@@ -421,13 +214,13 @@ class MolGraph(nx.Graph):
         
         for key,value in state.items():
             if(isinstance(value,str) == True):
-                self._make_state(key,value,None)
+                self._make_state(key,value)
             elif(isinstance(value,dict) == True): 
                 if('class' not in value):
                     raise ValueError(" 'class' method must be defined in",value)
                 if(isinstance(value['class'],str) == True):
-                    args = value['args'] if 'args' in value else None
-                    self._make_state(key,value['class'],args)
+                    args = value['args'] if 'args' in value else {}
+                    self._make_state(key,value['class'],**args)
                 else:
                     #Custom function/class here
                     args = value['args'] if 'args' in value else {}
@@ -452,7 +245,6 @@ class MolGraph(nx.Graph):
         The desired attributes must be given with a suitable converison function plus default value. 
         Here, one can add also the type of tensor or one-Hot mappings etc. and its default/zero state
         if the attributes is not specified for a specific node/edge.
-        We can change this also to a default zero padding if this is a better way.
 
         Args:
             nodes (dict, optional): Nodes properties. Defaults to {'proton' : np.array }.
@@ -517,10 +309,11 @@ class MolGraph(nx.Graph):
                 "state" :outs,
                 "adjacency" :outA,
                 "indices" :outei}
-        
     
-# test = MolGraph()
-# test.mol_from_smiles("C=O")
-# test.make()
-# nx.draw(test)
-# out = test.to_graph_tensors()
+    
+        
+m = rdkit.Chem.MolFromSmiles("CC=O")    
+test = MolGraph(m)
+test.make()
+nx.draw(test,with_labels=True)
+out = test.to_graph_tensors()

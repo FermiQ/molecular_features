@@ -1,8 +1,6 @@
-"""
-Common Molecular descriptors for (classical) machine learning.
-Note they are defined only for one molecule not for batches.
+"""Common Molecular descriptors for (classical) machine learning.
 
-@author: Patrick Reiser, 
+Note they are defined only for one molecule not for batches.
 """
 
 import numpy as np
@@ -19,7 +17,7 @@ def coulomb_matrix(atoms,coordinates):
         coordinates (np.array, list): List or numpy array of coordinates of shape (N,3)
 
     Returns:
-        cm (TYPE): DESCRIPTION.
+        np.array: Coulombmatrix of shape (N,N).
 
     """
     coordinates = np.array(coordinates)
