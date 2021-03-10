@@ -43,7 +43,7 @@ pip install molreps
 <a name="documentation"></a>
 # Documentation
 
-Auto-documentation is generated at:
+Auto-documentation is generated at: https://molreps.readthedocs.io/en/latest/index.html .
 
 <a name="implementation-details"></a>
 # Implementation details
