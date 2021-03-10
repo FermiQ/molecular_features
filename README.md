@@ -1,3 +1,5 @@
+[![Documentation Status](https://readthedocs.org/projects/molreps/badge/?version=latest)](https://molreps.readthedocs.io/en/latest/?badge=latest)
+
 # Molecular Descriptors
 
 Molecular features for machine learning.
