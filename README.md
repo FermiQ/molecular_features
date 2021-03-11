@@ -1,3 +1,4 @@
+[![GitHub version](https://badge.fury.io/gh/aimat-lab%2Fmolecular_features.svg)](https://badge.fury.io/gh/aimat-lab%2Fmolecular_features)
 [![Documentation Status](https://readthedocs.org/projects/molreps/badge/?version=latest)](https://molreps.readthedocs.io/en/latest/?badge=latest)
 ![PyPI - Downloads](https://img.shields.io/pypi/dm/molreps)
 [![PyPI version](https://badge.fury.io/py/molreps.svg)](https://badge.fury.io/py/molreps)
