@@ -1,3 +1,5 @@
+sphinx==3.4.3
+sphinx_rtd_theme
 numpy
 openbabel
 networkx
