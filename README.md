@@ -1,4 +1,5 @@
 [![Documentation Status](https://readthedocs.org/projects/molreps/badge/?version=latest)](https://molreps.readthedocs.io/en/latest/?badge=latest)
+![PyPI - Downloads](https://img.shields.io/pypi/dm/molreps)
 
 # Molecular Descriptors
 
