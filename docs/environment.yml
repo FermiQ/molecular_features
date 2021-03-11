@@ -7,4 +7,4 @@ dependencies:
   - rdkit
   - pip
   - pip:
-    - ./docs/requirements.txt
+    - ./requirements.txt
