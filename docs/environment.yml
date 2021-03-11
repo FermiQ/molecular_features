@@ -1,3 +1,4 @@
+name: latest
 channels:
   - conda-forge
   - defaults
