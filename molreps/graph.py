@@ -1,4 +1,5 @@
-"""Main graph generator for making molecular graphs.
+"""
+Main graph generator for making molecular graphs.
 
 It uses networkx as graph interface and a mol object from rdkit, ase, pymatgen or similar.
 """
@@ -160,7 +161,7 @@ class MolGraph(nx.Graph):
         key : {'class': identifier, 'args':{ args_dict }}
         Otherwise you can provide a costum method via the the identifier dict of the form:
         key : {'class': function/class, 'args':{ args_dict }}
-        The callable object of 'class' must accept as mol and key arguments this instance. Then key,mol and then additiona **args.
+        The callable object of 'class' must accept as mol and key arguments this instance. Then key,mol and then additiona args.
         Info: This matches tf.keras identifier scheme.
         
         Args:
@@ -230,13 +231,16 @@ class MolGraph(nx.Graph):
             
     ###########################################################################
     
-    def to_graph_tensors(self,
-                         nodes = {'proton' : np.array },
-                         edges = {'bond' : np.array, 'distance' : np.array},
-                         state = {'size' : np.array},
-                         default_nodes = {'proton' : np.array(0)},
-                         default_edges = {'bond' : np.array(0), 'distance' : np.array(0)},
-                         default_state = {'size' : np.array(0)},
+    def to_tensor(self,
+                         nodes = ['proton' ],
+                         edges = ['bond' , 'distance' ],
+                         state = ['size' ],
+                         trafo_nodes = {},
+                         trafo_edges = {},
+                         trafo_state = {},
+                         default_nodes = {},
+                         default_edges = {},
+                         default_state = {},
                          out_tensor = np.array
                          ):
         """
@@ -247,18 +251,40 @@ class MolGraph(nx.Graph):
         if the attributes is not specified for a specific node/edge.
 
         Args:
-            nodes (dict, optional): Nodes properties. Defaults to {'proton' : np.array }.
-            edges (dict, optional): Edge properties. Defaults to {'bond' : np.array, 'distance' : np.array}.
-            state (dict, optional): State Properties. Defaults to {'size' : np.array}.
-            default_nodes (dict, optional): Zero Nodes properties. Defaults to {'proton' : np.array(0) }.
-            default_edges (dict, optional): Zero Edge properties. Defaults to {'bond' : np.array(0), 'distance' : np.array(0)}.
-            default_state (dict, optional): Zero State Properties. Defaults to {'size' : np.array(0)}.
-            out_tensor (func) : Final Function for each node/edge/state. Default is np.array.
+            nodes (list, optional): Nodes properties. Defaults to ['proton'].
+            edges (list, optional): Edge properties. Defaults to ['bond' ,'distance' ].
+            state (list, optional): State Properties. Defaults to ['size' ].
+            trafo_nodes (dict,optinal): Transformation function for nodes. Defaults to np.array if no entry found.
+            trafo_edges (dict,optinal): Transformation function for edges. Defaults to np.array if no entry found.
+            trafo_state (dict,optinal): Transformation function for state. Defaults to np.array if no entry found.
+            default_nodes (dict, optional): Zero Nodes properties. Defaults to np.array(0) if no entry found.
+            default_edges (dict, optional): Zero Edge properties. Defaults to np.array(0) if no entry found.
+            default_state (dict, optional): Zero State Properties. Defaults to np.array(0) if no entry found.
+            out_tensor (func) : Final Function for each node/edge/state. Default is np.array if no entry found.
 
         Returns:
             dict: Graph tensors as dictionary.
 
         """
+        for x in nodes:
+            if x not in trafo_nodes:
+                trafo_nodes[x] = np.array
+        for x in edges:
+            if x not in trafo_edges:
+                trafo_edges[x] = np.array
+        for x in state:
+            if x not in trafo_state:
+                trafo_state[x] = np.array
+        for x in nodes:
+            if x not in default_nodes:
+                default_nodes[x] = np.array(0)
+        for x in edges:
+            if x not in default_edges:
+                default_edges[x] = np.array(0)
+        for x in state:
+            if x not in default_state:
+                default_state[x] = np.array(0)
+        
         outn = []
         oute = []
         outs = []
@@ -270,9 +296,9 @@ class MolGraph(nx.Graph):
         
         for i in node_idx:
             current_node = []
-            for key,trafo in nodes.items():
+            for key in nodes:
                 if key in self.nodes[i]:
-                    current_node.append(trafo(self.nodes[i][key]))
+                    current_node.append(trafo_nodes[key](self.nodes[i][key]))
                 else: 
                     current_node.append(default_nodes[key])
             outn.append(current_node)               
@@ -280,17 +306,17 @@ class MolGraph(nx.Graph):
         
         for i in edge_idx:
             current_edge = []
-            for key,trafo in edges.items():
+            for key in edges:
                 if key in self.edges[i]: 
-                    current_edge.append(trafo(self.edges[i][key]))
+                    current_edge.append(trafo_edges[key](self.edges[i][key]))
                 else: 
                     current_edge.append(default_edges[key])
             oute.append(current_edge)
         oute = out_tensor(oute)
         
-        for key,trafo in state.items():
+        for key in state:
             if key in self._graph_state:
-                outs.append(trafo(self._graph_state[key]))
+                outs.append(trafo_state[key](self._graph_state[key]))
             else:
                 outs.append(default_state[key])
         outs = out_tensor(outs)
@@ -316,4 +342,4 @@ m = rdkit.Chem.MolFromSmiles("CC=O")
 test = MolGraph(m)
 test.make()
 nx.draw(test,with_labels=True)
-out = test.to_graph_tensors()
+out = test.to_tensor()
