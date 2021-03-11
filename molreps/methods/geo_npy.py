@@ -265,7 +265,7 @@ def coordinates_from_distancematrix(DistIn,use_center = None,dim=3):
     may even wok for (...,N,N) but not tested
     
     Args:
-        DistIn (np.array): Distance matrix of shape (N,N) with Dij = |ri-rj|
+        DistIn (np.array): Distance matrix of shape (N,N) with Dij = abs(ri-rj)
         use_center (int): which atom should be the center, dafault = None means center of mass
         dim (int): the dimension of embedding, 3 is default
     
