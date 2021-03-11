@@ -131,9 +131,22 @@ The returned dictionary containing the feature tensors can be passed to graph mo
 
 <a name="examples"></a>
 # Examples
+Examples scripts using this repo are collected in [examples](examples).
 
 <a name="citing"></a>
 # Citing
+
+```
+@Misc{,
+    author = {Patrick Reiser},
+    title = {Python Package for Molecular Representation for Machine learning},
+    year = {2020},
+    publisher = {GitHub},
+    journal = {GitHub Repository},
+    howpublished = {\url{https://github.com/aimat-lab/molecular_features}},
+    url = "https://github.com/aimat-lab/molecular_features"
+}
+```
 
 <a name="references"></a>
 # References
