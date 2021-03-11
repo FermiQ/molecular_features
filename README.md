@@ -11,6 +11,7 @@ Molecular features for machine learning.
 * [Implementation details](#implementation-details)
 * [Usage](#usage)
 * [Examples](#examples)
+* [Citing](#citing)
 * [References](#references)
 
 
@@ -131,4 +132,8 @@ The returned dictionary containing the feature tensors can be passed to graph mo
 <a name="examples"></a>
 # Examples
 
+<a name="citing"></a>
+# Citing
 
+<a name="references"></a>
+# References
