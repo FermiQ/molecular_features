@@ -7,4 +7,6 @@ dependencies:
   - rdkit
   - pip
   - pip:
-    - /docs/requirements.txt
+    - openbabel
+    - networkx
+    - numpy
