@@ -1,7 +1,7 @@
-name: latest
 channels:
   - conda-forge
   - defaults
 dependencies:
   - python=3.8
   - pip>=20.1  # pip is needed as dependency
+  - rdkit
