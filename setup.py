@@ -13,7 +13,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
-    install_requires=['numpy', "scikit-learn","pandas"],
+    install_requires=['numpy', "scikit-learn","pandas","networkx"],
     extras_require={
         "ase": ["ase>=3.0.0"],
         "matplotlib": ["matplotlib>=2.0.0"],
