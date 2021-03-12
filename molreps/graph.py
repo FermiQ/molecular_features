@@ -13,9 +13,6 @@ try:
     import rdkit
     import rdkit.Chem.Descriptors
     import rdkit.Chem.AllChem
-    import rdkit.Chem.rdchem.Atom
-    import rdkit.Chem.rdchem.Bond
-    import rdkit.Chem.Mol
 
     MOLGRAPH_RDKIT_AVAILABLE = True
     from molreps.methods.mol_rdkit import rdkit_atom_list, rdkit_bond_list, rdkit_bond_distance_list
@@ -258,8 +255,7 @@ class MolGraph(nx.Graph):
         if trafo_state is None:
             trafo_state = {}
         if default_nodes is None:
-            default_nodes
-            {}
+            default_nodes = {}
         if default_edges is None:
             default_edges = {}
         if default_state is None:
