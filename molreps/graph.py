@@ -31,9 +31,6 @@ except ModuleNotFoundError:
     print("Warning: Openbabel not found for mol class.")
     MOLGRAPH_OPENBABEL_AVAILABLE = False
 
-###############################################################################
-
-
 if MOLGRAPH_RDKIT_AVAILABLE:
 
     def rdkit_get_property_atoms(mol, key, prop, **kwargs):
@@ -84,8 +81,6 @@ if MOLGRAPH_RDKIT_AVAILABLE:
             raise NotImplementedError("Property", prop, "is not predefined, use costum function.")
 
 
-###############################################################################
-
 # Main class to make graph
 class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
@@ -94,7 +89,7 @@ class MolGraph(nx.Graph):
         'nodes': ["proton", "symbol", "num_Hs", "aromatic", "degree", "valence", "mass", "in_ring", "hybridization"],
         'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance"],
         'state': ["mol_weight", "size"]}
-                         }
+    }
 
     def __init__(self, mol=None, **kwargs):
         super(MolGraph, self).__init__(**kwargs)
@@ -105,8 +100,6 @@ class MolGraph(nx.Graph):
         self.mol_type = None
         if isinstance(mol, rdkit.Chem.Mol):
             self.mol_type = "rdkit"
-
-    ###########################################################################
 
     # Check for identifier
     def _make_edges(self, key, propy, **args):
@@ -126,8 +119,6 @@ class MolGraph(nx.Graph):
             self._graph_state.update(rdkit_get_property_molstate(self.mol, key=key, prop=propy, **args))
         else:
             raise ValueError("Property identifier is not implemented for mol type", self.mol_type)
-
-            ###########################################################################
 
     def make(self, nodes={'proton': "proton",
                           'symbol': "symbol",
@@ -236,8 +227,6 @@ class MolGraph(nx.Graph):
                     'args' : {'value' : 0} }, with optinal args but got",
                     value, "instead")
 
-    ###########################################################################
-
     def to_tensor(self,
                   nodes=['proton'],
                   edges=['bond', 'distance'],
@@ -341,7 +330,6 @@ class MolGraph(nx.Graph):
                 "state": outs,
                 "adjacency": out_a,
                 "indices": outei}
-
 
 # m = rdkit.Chem.MolFromSmiles("CC=O")
 # test = MolGraph(m)
