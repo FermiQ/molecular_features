@@ -13,6 +13,9 @@ try:
     import rdkit
     import rdkit.Chem.Descriptors
     import rdkit.Chem.AllChem
+    import rdkit.Chem.rdchem.Atom
+    import rdkit.Chem.rdchem.Bond
+    import rdkit.Chem.Mol
 
     MOLGRAPH_RDKIT_AVAILABLE = True
     from molreps.methods.mol_rdkit import rdkit_atom_list, rdkit_bond_list, rdkit_bond_distance_list
@@ -120,26 +123,12 @@ class MolGraph(nx.Graph):
         else:
             raise ValueError("Property identifier is not implemented for mol type", self.mol_type)
 
-    def make(self, nodes={'proton': "proton",
-                          'symbol': "symbol",
-                          "num _Hs": "num_Hs",
-                          "aromatic": "aromatic",
-                          "degree": "degree",
-                          "valence": "valence",
-                          "mass": "mass",
-                          "in_ring": "in_ring",
-                          "hybridization": "hybridization"
-                          },
+    def make(self, nodes={'proton': "proton"},
              edges={'bond': 'bond',
                     'distance': {'class': 'distance',
-                                 'args': {'bonds_only': True, 'max_distance': np.inf, 'max_partners': np.inf}},
-                    "is_aromatic": "is_aromatic",
-                    "is_conjugated": "is_conjugated",
-                    "in_ring": "in_ring",
-                    },
-             state={'size': 'size',
-                    "mol_weight": "mol_weight"
-                    }):
+                                 'args': {'bonds_only': True, 'max_distance': np.inf, 'max_partners': np.inf}}},
+             state={'size': 'size'}
+             ):
         """
         Construct graph from mol instance.
         
@@ -231,12 +220,12 @@ class MolGraph(nx.Graph):
                   nodes=['proton'],
                   edges=['bond', 'distance'],
                   state=['size'],
-                  trafo_nodes={},
-                  trafo_edges={},
-                  trafo_state={},
-                  default_nodes={},
-                  default_edges={},
-                  default_state={},
+                  trafo_nodes=None,
+                  trafo_edges=None,
+                  trafo_state=None,
+                  default_nodes=None,
+                  default_edges=None,
+                  default_state=None,
                   out_tensor=np.array
                   ):
         """
@@ -262,6 +251,20 @@ class MolGraph(nx.Graph):
             dict: Graph tensors as dictionary.
 
         """
+        if trafo_nodes is None:
+            trafo_nodes = {}
+        if trafo_edges is None:
+            trafo_edges = {}
+        if trafo_state is None:
+            trafo_state = {}
+        if default_nodes is None:
+            default_nodes
+            {}
+        if default_edges is None:
+            default_edges = {}
+        if default_state is None:
+            default_state = {}
+
         for x in nodes:
             if x not in trafo_nodes:
                 trafo_nodes[x] = np.array

@@ -43,11 +43,11 @@ err = np.multiply(err, err)
 err = np.sum(err)
 rmse = np.sqrt(err/n);
 
-print("Points A")
+print("Points a")
 print(A)
 print("")
 
-print("Points B")
+print("Points b")
 print(B)
 print("")
 
