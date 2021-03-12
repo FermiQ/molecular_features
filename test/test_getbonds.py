@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Apr 27 18:05:50 2020
-
-@author: Patrick
-"""
-
 from molreps.methods.geo_npy import coordinates_to_distancematrix,invert_distance,get_connectivity_from_inversedistancematrix
 import matplotlib.pyplot as plt
 import numpy as np
