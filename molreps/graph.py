@@ -213,6 +213,8 @@ class MolGraph(nx.Graph):
                     'args' : {'value' : 0} }, with optinal args but got",
                     value, "instead")
 
+        return self
+
     def to_tensor(self,
                   nodes=['proton'],
                   edges=['bond', 'distance'],
