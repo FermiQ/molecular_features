@@ -14,7 +14,7 @@ Molecular features for machine learning.
 
    intro
    installation
-   implementation
+   dependencies
    usage
 
 Package Content

@@ -12,7 +12,7 @@ Molecular features for machine learning.
 * [General](#general)
 * [Installation](#installation)
 * [Documentation](#documentation)
-* [Implementation details](#implementation-details)
+* [Dependencies](#implementation-details)
 * [Usage](#usage)
 * [Examples](#examples)
 * [Citing](#citing)
