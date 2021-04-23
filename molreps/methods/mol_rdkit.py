@@ -52,6 +52,9 @@ def rdkit_mol_from_atoms_bonds(atoms, bonds, sani=False):
     for atm in atoms:
         mol.AddAtom(rdkit.Chem.Atom(atm))
 
+    if isinstance(bonds, np.ndarray):
+        bonds = bonds.tolist()
+
     for i in range(len(bonds)):
         if not mol.GetBondBetweenAtoms(int(bonds[i][0]), int(bonds[i][1])) and int(bonds[i][0]) != int(bonds[i][1]):
             if len(bonds[i]) == 3:

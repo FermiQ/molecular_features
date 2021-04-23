@@ -230,7 +230,7 @@ class MolGraph(nx.Graph):
         """
         Convert the nx graph into a dict of tensors which can be directly used for GCN.
         
-        The desired attributes must be given with a suitable converison function plus default value. 
+        The desired attributes must be given with a suitable conversion function plus default value.
         Here, one can add also the type of tensor or one-Hot mappings etc. and its default/zero state
         if the attributes is not specified for a specific node/edge.
 
@@ -238,13 +238,13 @@ class MolGraph(nx.Graph):
             nodes (list, optional): Nodes properties. Defaults to ['proton'].
             edges (list, optional): Edge properties. Defaults to ['bond' ,'distance' ].
             state (list, optional): State Properties. Defaults to ['size' ].
-            trafo_nodes (dict,optinal): Transformation function for nodes. Defaults to np.array if no entry found.
-            trafo_edges (dict,optinal): Transformation function for edges. Defaults to np.array if no entry found.
-            trafo_state (dict,optinal): Transformation function for state. Defaults to np.array if no entry found.
-            default_nodes (dict, optional): Zero Nodes properties. Defaults to np.array(0) if no entry found.
-            default_edges (dict, optional): Zero Edge properties. Defaults to np.array(0) if no entry found.
-            default_state (dict, optional): Zero State Properties. Defaults to np.array(0) if no entry found.
-            out_tensor (func) : Final Function for each node/edge/state. Default is np.array if no entry found.
+            trafo_nodes (dict, optional): Transformation function for nodes. Defaults to np.array.
+            trafo_edges (dict, optional): Transformation function for edges. Defaults to np.array.
+            trafo_state (dict, optional): Transformation function for state. Defaults to np.array.
+            default_nodes (dict, optional): Zero Nodes properties. Defaults to np.array(0).
+            default_edges (dict, optional): Zero Edge properties. Defaults to np.array(0).
+            default_state (dict, optional): Zero State Properties. Defaults to np.array(0).
+            out_tensor (func) : Final Function for each node/edge/state. Default is np.array.
 
         Returns:
             dict: Graph tensors as dictionary.
