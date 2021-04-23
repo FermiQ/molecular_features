@@ -52,14 +52,9 @@ Auto-documentation is generated at: https://molreps.readthedocs.io/en/latest/ind
 <a name="implementation-details"></a>
 # Implementation details
 
-Since there are many chemcial libraries in use, their dependencies should be flexible. In order to install molreps, external dependecies are not required.
-The methods are therefore sorted in modules that require specifically numpy, rdkit etc. However, further external libraries have to be installed manually for certain modules.
-That include following optional dependencies:
-
-- networkx
-- rdkit
-- openpapel
-- ase
+Since there are many chemcial libraries in use, which can not be easily installed with `pip` (that include the following dependencies), they must be installed with e.g. `conda`:
+- rdkit, e.g. via `conda install -c rdkit rdkit`
+- openbabel, e.g. via `conda install -c openbabel openbabel`
 
 <a name="usage"></a>
 # Usage
