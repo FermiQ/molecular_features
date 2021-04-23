@@ -12,7 +12,7 @@ Molecular features for machine learning.
 * [General](#general)
 * [Installation](#installation)
 * [Documentation](#documentation)
-* [Dependencies](#implementation-details)
+* [Dependencies](#dependencies)
 * [Usage](#usage)
 * [Examples](#examples)
 * [Citing](#citing)
@@ -49,8 +49,8 @@ pip install molreps
 
 Auto-documentation is generated at: https://molreps.readthedocs.io/en/latest/index.html .
 
-<a name="implementation-details"></a>
-# Implementation details
+<a name="dependencies"></a>
+# Dependencies
 
 Since there are many chemcial libraries in use, which can not be easily installed with `pip` (that include the following dependencies), they must be installed with e.g. `conda`:
 - rdkit, e.g. via `conda install -c rdkit rdkit`
