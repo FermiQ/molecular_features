@@ -6,18 +6,15 @@ with open("README.md", "r") as fh:
 
 setup(
     name="molreps",
-    version="0.1.0",
+    version="0.1.1",
     author="Patrick Reiser",
     author_email="patrick.reiser@kit.edu",
     description="Molecular feature generation for machine learning",
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
-    install_requires=['numpy', "scikit-learn","pandas","networkx"],
-    extras_require={
-        "ase": ["ase>=3.0.0"],
-        "matplotlib": ["matplotlib>=2.0.0"],
-    },
+    install_requires=['numpy', "scikit-learn","pandas","networkx","matplotlib","ase"],
+    extras_require={},
     packages=find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
