@@ -17,7 +17,7 @@ AllChem.EmbedMolecule(m)
 AllChem.MMFFOptimizeMolecule(m)
 
 # Make mol graph
-mgraph = MolGraph(m).make(nodes=["in_ring","chiral"],edges=["bond"])
+mgraph = MolGraph(m).make()
 print(mgraph._mols_implemented)
 nx.draw(mgraph,with_labels=True)
 graph_tensors = mgraph.to_tensor()

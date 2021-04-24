@@ -104,10 +104,10 @@ provided like `'key' : {'class': my_fun, 'args':{'arg1': value1,'arg2': value2 }
 
 ```python
 mgraph.make()
-mgraph.make(nodes = {"proton" : 'proton'},
-            edges = {"bond" : 'bond',
-                     "distance" : {'class':'distance', 'args':{'bonds_only':True}}},
-            state = {"mol_weight" : 'mol_weight'}
+mgraph.make(nodes = {"AtomicNum" : 'AtomicNum'},
+            edges = {"BondType" : 'BondType',
+                     "Distance" : {'class':'Distance', 'args':{'bonds_only':True}}},
+            state = {"ExactMolWt" : 'ExactMolWt'}
             )
 ```
 Note, a custom function must accept `key` and this instance as first argument, the molecule class is accessible via `.mol`. For example make a list of tuples such as `[(i, {key: property})]` for atoms and `[((i,j, {key: property}))]` for bonds and then add them to the graph by 
@@ -118,9 +118,9 @@ A default value has to be added, if a single node or edge is missing a key, to g
 
 ```python
 mgraph.to_tensor()
-graph_tensors= mgraph.to_tensor(nodes = ["proton"],
-                                edges = ["bond" ],
-                                state = ["mol_weight"],
+graph_tensors= mgraph.to_tensor(nodes = ["AtomicNum"],
+                                edges = ["BondType"],
+                                state = ["ExactMolWt"],
                                 out_tensor = np.array)
 ```
 

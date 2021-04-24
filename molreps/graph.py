@@ -36,51 +36,54 @@ if MOLGRAPH_RDKIT_AVAILABLE:
     def rdkit_get_property_atoms(mol, key, prop, **kwargs):
 
         atom_fun_dict = {
-            "proton": rdkit.Chem.rdchem.Atom.GetAtomicNum,
-            "symbol": rdkit.Chem.rdchem.Atom.GetSymbol,
-            "exp_Hs": rdkit.Chem.rdchem.Atom.GetNumExplicitHs,
-            "imp_Hs": rdkit.Chem.rdchem.Atom.GetNumImplicitHs,
-            "aromatic": rdkit.Chem.rdchem.Atom.GetIsAromatic,
-            "degree": rdkit.Chem.rdchem.Atom.GetTotalDegree,
-            "valence": rdkit.Chem.rdchem.Atom.GetTotalValence,
-            "mass": rdkit.Chem.rdchem.Atom.GetMass,
-            "in_ring": rdkit.Chem.rdchem.Atom.IsInRing,
-            "hybridization": rdkit.Chem.rdchem.Atom.GetHybridization,
-            "chiral": rdkit.Chem.rdchem.Atom.GetChiralTag
+            "AtomicNum": rdkit.Chem.rdchem.Atom.GetAtomicNum,
+            "Symbol": rdkit.Chem.rdchem.Atom.GetSymbol,
+            "NumExplicitHs": rdkit.Chem.rdchem.Atom.GetNumExplicitHs,
+            "NumImplicitHs": rdkit.Chem.rdchem.Atom.GetNumImplicitHs,
+            "IsAromatic": rdkit.Chem.rdchem.Atom.GetIsAromatic,
+            "TotalDegree": rdkit.Chem.rdchem.Atom.GetTotalDegree,
+            "TotalValence": rdkit.Chem.rdchem.Atom.GetTotalValence,
+            "Mass": rdkit.Chem.rdchem.Atom.GetMass,
+            "IsInRing": rdkit.Chem.rdchem.Atom.IsInRing,
+            "Hybridization": rdkit.Chem.rdchem.Atom.GetHybridization,
+            "ChiralTag": rdkit.Chem.rdchem.Atom.GetChiralTag,
+            "FormalCharge": rdkit.Chem.rdchem.Atom.GetFormalCharge,
+            "ImplicitValence": rdkit.Chem.rdchem.Atom.GetImplicitValence,
+            "NumRadicalElectrons": rdkit.Chem.rdchem.Atom.GetNumRadicalElectrons,
         }
         if prop in atom_fun_dict:
             return rdkit_atom_list(mol, key, atom_fun_dict[prop])
         else:
-            raise NotImplementedError("Property", prop, "is not predefined, use costum function.")
+            raise NotImplementedError("Property", prop, "is not predefined, use custom function.")
 
 
     def rdkit_get_property_bonds(mol, key, prop, **kwargs):
 
         bond_fun_dict = {
-            "bond": rdkit.Chem.rdchem.Bond.GetBondType,
-            "is_aromatic": rdkit.Chem.rdchem.Bond.GetIsAromatic,
-            "is_conjugated": rdkit.Chem.rdchem.Bond.GetIsConjugated,
-            "in_ring": rdkit.Chem.rdchem.Bond.IsInRing,
-            "stereo": rdkit.Chem.rdchem.Bond.GetStereo
+            "BondType": rdkit.Chem.rdchem.Bond.GetBondType,
+            "IsAromatic": rdkit.Chem.rdchem.Bond.GetIsAromatic,
+            "IsConjugated": rdkit.Chem.rdchem.Bond.GetIsConjugated,
+            "IsInRing": rdkit.Chem.rdchem.Bond.IsInRing,
+            "Stereo": rdkit.Chem.rdchem.Bond.GetStereo
         }
         if prop in bond_fun_dict:
             return rdkit_bond_list(mol, key, bond_fun_dict[prop])
-        elif prop == "distance":
+        elif prop == "Distance":
             return rdkit_bond_distance_list(mol, key, **kwargs)
         else:
-            raise NotImplementedError("Property", prop, "is not predefined, use costum function.")
+            raise NotImplementedError("Property", prop, "is not predefined, use custom function.")
 
 
     def rdkit_get_property_molstate(mol, key, prop, **kwargs):
         state_fun_dict = {
-            "mol_weight": rdkit.Chem.Descriptors.ExactMolWt
+            "ExactMolWt": rdkit.Chem.Descriptors.ExactMolWt
         }
         if prop in state_fun_dict:
             return {key: state_fun_dict[prop](mol)}
-        elif prop == "size":
+        elif prop == "NumAtoms":
             return {key: mol.GetNumAtoms()}
         else:
-            raise NotImplementedError("Property", prop, "is not predefined, use costum function.")
+            raise NotImplementedError("Property", prop, "is not predefined, use custom function.")
 
 
 # Main class to make graph
@@ -88,10 +91,11 @@ class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
 
     _mols_implemented = {'rdkit': {
-        'nodes': ["proton", "symbol", "exp_Hs", "imp_Hs", "aromatic", "degree", "valence", "mass", "in_ring",
-                  "hybridization","chiral"],
-        'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance", "stereo"],
-        'state': ["mol_weight", "size"]}
+        'nodes': ["AtomicNum", "Symbol", "NumExplicitHs","NumImplicitHs","IsAromatic","TotalDegree",
+            "TotalValence","Mass", "IsInRing","Hybridization", "ChiralTag", "FormalCharge",
+            "ImplicitValence", "NumRadicalElectrons"],
+        'edges': ["BondType","IsAromatic","IsConjugated","IsInRing","Stereo","Distance"],
+        'state': ["NumAtoms", "ExactMolWt"]}
     }
 
     def __init__(self, mol=None, **kwargs):
@@ -158,13 +162,11 @@ class MolGraph(nx.Graph):
         if self.mol is None:
             raise AttributeError("Initialize Molecule before making graph")
         if nodes is None:
-            nodes = {'proton': "proton"}
+            nodes = [self._mols_implemented[self.mol_type]['nodes'][0]]
         if edges is None:
-            edges = {'bond': 'bond', 'distance': {'class': 'distance',
-                                                  'args': {'bonds_only': True, 'max_distance': np.inf,
-                                                           'max_partners': np.inf}}}
+            edges = [self._mols_implemented[self.mol_type]['edges'][0]]
         if state is None:
-            state = {'size': 'size'}
+            state = [self._mols_implemented[self.mol_type]['state'][0]]
 
         # Make default keys if only list is inserted
         if isinstance(nodes, list) or isinstance(nodes, tuple):
@@ -296,11 +298,11 @@ class MolGraph(nx.Graph):
 
         """
         if nodes is None:
-            nodes = ['proton']
+            nodes = [self._mols_implemented[self.mol_type]['nodes'][0]]
         if edges is None:
-            edges = ['bond', 'distance']
+            edges = [self._mols_implemented[self.mol_type]['edges'][0]]
         if state is None:
-            state = ['size']
+            state = [self._mols_implemented[self.mol_type]['state'][0]]
         if trafo_nodes is None:
             trafo_nodes = {}
         if trafo_edges is None:
@@ -325,13 +327,13 @@ class MolGraph(nx.Graph):
                 trafo_state[x] = np.array
         for x in nodes:
             if x not in default_nodes:
-                default_nodes[x] = np.array(0)
+                default_nodes[x] = np.array(0.0)
         for x in edges:
             if x not in default_edges:
-                default_edges[x] = np.array(0)
+                default_edges[x] = np.array(0.0)
         for x in state:
             if x not in default_state:
-                default_state[x] = np.array(0)
+                default_state[x] = np.array(0.0)
 
         outn = []
         oute = []

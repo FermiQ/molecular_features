@@ -46,23 +46,23 @@ that can be assigned by an identifier like `'key': 'identifier'` or if further a
 provided like `'key' : {'class': my_fun, 'args':{'arg1': value1,'arg2': value2 }}`. A dictionary of predifined identifiers is listed in `print(MolGraph._mols_implemented)`.::
 
    mgraph.make()
-   mgraph.make(nodes = {"proton" : 'proton'},
-               edges = {"bond" : 'bond',
-                        "distance" : {'class':'distance', 'args':{'bonds_only':True}}},
-               state = {"mol_weight" : 'mol_weight'}
+   mgraph.make(nodes = {"AtomicNum" : 'AtomicNum'},
+               edges = {"BondType" : 'BondType',
+                        "Distance" : {'class':'Distance', 'args':{'bonds_only':True}}},
+               state = {"ExactMolWt" : 'ExactMolWt'}
                )
 
 
-Note, a custom function must accept `key`,`mol` as arguments and return a list of tuples such as `[(i, {key: property})]`for atoms and `[((i,j, {key: property}))]` for bonds such that it can be read by 
+Note, a custom function must accept `key` and this class as arguments with `.mol` and can make a list of tuples such as `[(i, {key: property})]`for atoms and `[((i,j, {key: property}))]` for bonds such that it can be read by
 `add_nodes_from()` or `add_edges_from()`, respectively. Then the generated graph can be viewed and treated as a networkx graph, like plotting `nx.draw(mgraph,with_labels=True)`.
 Finnaly, a closed form tensor is collected from selected features defined by the key-attribute. 
 For each key an additional function to process the features and a default value can be optionally provided but defaults to `np.array`.
 A default value has to be added, if a single node or edge is missing a key, to generate a closed form tensor.::
 
    mgraph.to_tensor()
-   graph_tensors= mgraph.to_tensor(nodes = ["proton"],
-                                   edges = ["bond" ],
-                                   state = ["mol_weight"],
+   graph_tensors= mgraph.to_tensor(nodes = ["AtomicNum"],
+                                   edges = ["BondType" ],
+                                   state = ["ExactMolWt"],
                                    out_tensor = np.array)
 
 
