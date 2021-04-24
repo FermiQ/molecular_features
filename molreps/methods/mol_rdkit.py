@@ -138,7 +138,7 @@ def rdkit_atom_list(mol, key, method, args={}):
     return g
 
 
-def rdkit_bond_list(mol, key, method, args={}, trafo=int):
+def rdkit_bond_list(mol, key, method, args={}):
     """
     Make a list of bonds with bond-type information from rdkit.mol.
 
@@ -158,7 +158,7 @@ def rdkit_bond_list(mol, key, method, args={}, trafo=int):
     bonds = list(mol.GetBonds())
     g = []
     for x in bonds:
-        attr = {key: trafo(method(x, **args))}
+        attr = {key: method(x, **args)}
         g.append((x.GetBeginAtomIdx(), x.GetEndAtomIdx(), attr))
         g.append((x.GetEndAtomIdx(), x.GetBeginAtomIdx(), attr))
     return g

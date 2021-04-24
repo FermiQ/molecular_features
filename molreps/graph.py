@@ -89,7 +89,7 @@ class MolGraph(nx.Graph):
 
     _mols_implemented = {'rdkit': {
         'nodes': ["proton", "symbol", "exp_Hs", "imp_Hs", "aromatic", "degree", "valence", "mass", "in_ring",
-                  "hybridization"],
+                  "hybridization","chiral"],
         'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance", "stereo"],
         'state': ["mol_weight", "size"]}
     }
