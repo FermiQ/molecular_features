@@ -14,10 +14,10 @@ Draw.ShowMol(m)
 
 # If no coordinates are known, do embedding with rdkit
 AllChem.EmbedMolecule(m)
-AllChem.MMFFOptimizeMolecule(m,maxIters=200)
+AllChem.MMFFOptimizeMolecule(m)
 
 # Make mol graph
-mgraph = MolGraph(m).make(nodes={"chiral": "chiral","in_ring" : "in_ring"})
+mgraph = MolGraph(m).make(nodes=["in_ring","chiral"],edges=["bond"])
 print(mgraph._mols_implemented)
 nx.draw(mgraph,with_labels=True)
 graph_tensors = mgraph.to_tensor()

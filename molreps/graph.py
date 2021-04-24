@@ -13,6 +13,7 @@ try:
     import rdkit
     import rdkit.Chem.Descriptors
     import rdkit.Chem.AllChem
+
     MOLGRAPH_RDKIT_AVAILABLE = True
     from molreps.methods.mol_rdkit import rdkit_atom_list, rdkit_bond_list, rdkit_bond_distance_list
     from molreps.methods.mol_rdkit import rdkit_mol_from_atoms_bonds, rdkit_add_conformer
@@ -23,6 +24,7 @@ except ModuleNotFoundError:
 # openbabel
 try:
     import openbabel
+
     MOLGRAPH_OPENBABEL_AVAILABLE = True
     from molreps.methods.mol_pybel import ob_get_bond_table_from_coordinates
 except ModuleNotFoundError:
@@ -86,7 +88,8 @@ class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
 
     _mols_implemented = {'rdkit': {
-        'nodes': ["proton", "symbol", "exp_Hs", "imp_Hs", "aromatic", "degree", "valence", "mass", "in_ring", "hybridization"],
+        'nodes': ["proton", "symbol", "exp_Hs", "imp_Hs", "aromatic", "degree", "valence", "mass", "in_ring",
+                  "hybridization"],
         'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance", "stereo"],
         'state': ["mol_weight", "size"]}
     }
@@ -158,20 +161,45 @@ class MolGraph(nx.Graph):
             nodes = {'proton': "proton"}
         if edges is None:
             edges = {'bond': 'bond', 'distance': {'class': 'distance',
-                      'args': {'bonds_only': True, 'max_distance': np.inf, 'max_partners': np.inf}}}
+                                                  'args': {'bonds_only': True, 'max_distance': np.inf,
+                                                           'max_partners': np.inf}}}
         if state is None:
             state = {'size': 'size'}
 
         # Make default keys if only list is inserted
-        if isinstance(nodes,list) or isinstance(nodes,tuple):
+        if isinstance(nodes, list) or isinstance(nodes, tuple):
             nodes_dict = {}
             for x in nodes:
-                if isinstance(x,str):
-                    nodes_dict.update({x:x})
-                elif isinstance(x,dict):
+                if isinstance(x, str):
                     nodes_dict.update({x: x})
+                elif isinstance(x, dict):
+                    nodes_dict.update({x['class']: x})
                 else:
-                    raise ValueError("Unknown ", x)
+                    raise ValueError(
+                        "Method must be single string or class dict but got", x)
+            nodes = nodes_dict
+        if isinstance(edges, list) or isinstance(edges, tuple):
+            edges_dict = {}
+            for x in edges:
+                if isinstance(x, str):
+                    edges_dict.update({x: x})
+                elif isinstance(x, dict):
+                    edges_dict.update({x['class']: x})
+                else:
+                    raise ValueError(
+                        "Method must be single string or class dict serialized, but got", x)
+            edges = edges_dict
+        if isinstance(state, list) or isinstance(state, tuple):
+            state_dict = {}
+            for x in state:
+                if isinstance(x, str):
+                    state_dict.update({x: x})
+                elif isinstance(x, dict):
+                    state_dict.update({x['class']: x})
+                else:
+                    raise ValueError(
+                        "Method must be single string or class dict but got", x)
+            state = state_dict
 
         for key, value in nodes.items():
             if isinstance(value, str):
@@ -189,7 +217,7 @@ class MolGraph(nx.Graph):
             else:
                 raise TypeError(
                     "Method must be a dict of {'class' : callable function/class or identifier, \
-                    'args' : {'value' : 0} }, with optinal args but got",
+                    'args' : {'value' : 0} }, with optional args but got",
                     value, "instead")
 
         for key, value in edges.items():
@@ -233,9 +261,9 @@ class MolGraph(nx.Graph):
         return self
 
     def to_tensor(self,
-                  nodes=['proton'],
-                  edges=['bond', 'distance'],
-                  state=['size'],
+                  nodes=None,
+                  edges=None,
+                  state=None,
                   trafo_nodes=None,
                   trafo_edges=None,
                   trafo_state=None,
@@ -253,8 +281,8 @@ class MolGraph(nx.Graph):
 
         Args:
             nodes (list, optional): Nodes properties. Defaults to ['proton'].
-            edges (list, optional): Edge properties. Defaults to ['bond' ,'distance' ].
-            state (list, optional): State Properties. Defaults to ['size' ].
+            edges (list, optional): Edge properties. Defaults to ['bond' , 'distance'].
+            state (list, optional): State Properties. Defaults to ['size'].
             trafo_nodes (dict, optional): Transformation function for nodes. Defaults to np.array.
             trafo_edges (dict, optional): Transformation function for edges. Defaults to np.array.
             trafo_state (dict, optional): Transformation function for state. Defaults to np.array.
@@ -267,6 +295,12 @@ class MolGraph(nx.Graph):
             dict: Graph tensors as dictionary.
 
         """
+        if nodes is None:
+            nodes = ['proton']
+        if edges is None:
+            edges = ['bond', 'distance']
+        if state is None:
+            state = ['size']
         if trafo_nodes is None:
             trafo_nodes = {}
         if trafo_edges is None:
