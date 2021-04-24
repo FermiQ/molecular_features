@@ -110,7 +110,7 @@ mgraph.make(nodes = {"proton" : 'proton'},
             state = {"mol_weight" : 'mol_weight'}
             )
 ```
-Note, a custom function must accept `key`,`mol` as arguments and return a list of tuples such as `[(i, {key: property})]`for atoms and `[((i,j, {key: property}))]` for bonds such that it can be read by 
+Note, a custom function must accept `key` and this instance as first argument, the molecule class is accessible via `.mol`. For example make a list of tuples such as `[(i, {key: property})]` for atoms and `[((i,j, {key: property}))]` for bonds and then add them to the graph by 
 `add_nodes_from()` or `add_edges_from()`, respectively. Then the generated graph can be viewed and treated as a networkx graph, like plotting `nx.draw(mgraph,with_labels=True)`.
 Finnaly, a closed form tensor is collected from selected features defined by the key-attribute. 
 For each key an additional function to process the features and a default value can be optionally provided but defaults to `np.array`.
@@ -137,7 +137,7 @@ Examples scripts using this repo are collected in [examples](examples).
 ```
 @Misc{,
     author = {Patrick Reiser},
-    title = {Python Package for Molecular Representation for Machine learning},
+    title = {Python Package for Molecular Representations in Machine learning},
     year = {2020},
     publisher = {GitHub},
     journal = {GitHub Repository},
@@ -148,3 +148,5 @@ Examples scripts using this repo are collected in [examples](examples).
 
 <a name="references"></a>
 # References
+* https://www.rdkit.org/docs/GettingStartedInPython.html
+* 

@@ -3,7 +3,7 @@
 Specific functions for molecular features.
 """
 
-from openbabel import openbabel
+import openbabel
 
 
 def ob_build_xyz_string_from_list(atoms, coords):

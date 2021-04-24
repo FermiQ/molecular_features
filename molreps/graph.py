@@ -13,7 +13,6 @@ try:
     import rdkit
     import rdkit.Chem.Descriptors
     import rdkit.Chem.AllChem
-
     MOLGRAPH_RDKIT_AVAILABLE = True
     from molreps.methods.mol_rdkit import rdkit_atom_list, rdkit_bond_list, rdkit_bond_distance_list
     from molreps.methods.mol_rdkit import rdkit_mol_from_atoms_bonds, rdkit_add_conformer
@@ -21,10 +20,9 @@ except ModuleNotFoundError:
     print("Warning: Rdkit not found for mol class.")
     MOLGRAPH_RDKIT_AVAILABLE = False
 
-# OPenbabel
+# openbabel
 try:
-    from openbabel import openbabel
-
+    import openbabel
     MOLGRAPH_OPENBABEL_AVAILABLE = True
     from molreps.methods.mol_pybel import ob_get_bond_table_from_coordinates
 except ModuleNotFoundError:
@@ -38,13 +36,15 @@ if MOLGRAPH_RDKIT_AVAILABLE:
         atom_fun_dict = {
             "proton": rdkit.Chem.rdchem.Atom.GetAtomicNum,
             "symbol": rdkit.Chem.rdchem.Atom.GetSymbol,
-            "num_Hs": rdkit.Chem.rdchem.Atom.GetNumExplicitHs,
+            "exp_Hs": rdkit.Chem.rdchem.Atom.GetNumExplicitHs,
+            "imp_Hs": rdkit.Chem.rdchem.Atom.GetNumImplicitHs,
             "aromatic": rdkit.Chem.rdchem.Atom.GetIsAromatic,
             "degree": rdkit.Chem.rdchem.Atom.GetTotalDegree,
             "valence": rdkit.Chem.rdchem.Atom.GetTotalValence,
             "mass": rdkit.Chem.rdchem.Atom.GetMass,
             "in_ring": rdkit.Chem.rdchem.Atom.IsInRing,
             "hybridization": rdkit.Chem.rdchem.Atom.GetHybridization,
+            "chiral": rdkit.Chem.rdchem.Atom.GetChiralTag
         }
         if prop in atom_fun_dict:
             return rdkit_atom_list(mol, key, atom_fun_dict[prop])
@@ -58,9 +58,9 @@ if MOLGRAPH_RDKIT_AVAILABLE:
             "bond": rdkit.Chem.rdchem.Bond.GetBondType,
             "is_aromatic": rdkit.Chem.rdchem.Bond.GetIsAromatic,
             "is_conjugated": rdkit.Chem.rdchem.Bond.GetIsConjugated,
-            "in_ring": rdkit.Chem.rdchem.Bond.IsInRing
+            "in_ring": rdkit.Chem.rdchem.Bond.IsInRing,
+            "stereo": rdkit.Chem.rdchem.Bond.GetStereo
         }
-
         if prop in bond_fun_dict:
             return rdkit_bond_list(mol, key, bond_fun_dict[prop])
         elif prop == "distance":
@@ -86,8 +86,8 @@ class MolGraph(nx.Graph):
     """Molecular Graph which inherits from networkx graph."""
 
     _mols_implemented = {'rdkit': {
-        'nodes': ["proton", "symbol", "num_Hs", "aromatic", "degree", "valence", "mass", "in_ring", "hybridization"],
-        'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance"],
+        'nodes': ["proton", "symbol", "exp_Hs", "imp_Hs", "aromatic", "degree", "valence", "mass", "in_ring", "hybridization"],
+        'edges': ["bond", "is_aromatic", "is_conjugated", "in_ring", "distance", "stereo"],
         'state': ["mol_weight", "size"]}
     }
 
@@ -120,11 +120,10 @@ class MolGraph(nx.Graph):
         else:
             raise ValueError("Property identifier is not implemented for mol type", self.mol_type)
 
-    def make(self, nodes={'proton': "proton"},
-             edges={'bond': 'bond',
-                    'distance': {'class': 'distance',
-                                 'args': {'bonds_only': True, 'max_distance': np.inf, 'max_partners': np.inf}}},
-             state={'size': 'size'}
+    def make(self,
+             nodes=None,
+             edges=None,
+             state=None
              ):
         """
         Construct graph from mol instance.
@@ -133,16 +132,16 @@ class MolGraph(nx.Graph):
         can be chosen freely and will be graph attributes. 
         The identifier is a string for built-in function e.g. 'proton'. Or if args have to be provided:
         key : {'class': identifier, 'args':{ args_dict }}
-        Otherwise you can provide a costum method via the the identifier dict of the form:
+        Otherwise you can provide a custom method via the the identifier dict of the form:
         key : {'class': function/class, 'args':{ args_dict }}
-        The callable object of 'class' must accept as mol and key arguments this instance.
-        Then key,mol and then additional args.
-        Info: This matches tf.keras identifier scheme.
+        The callable object of 'class' must accept as first argument this instance.
+        Then key=key and then additional args from 'args':{ args_dict }.
         
         Args:
-            nodes (dict, optional): Properties for nodes. Defaults to {'proton' : "proton" , ... }                   
-            edges (dict, optional): Properties for edges. Defaults to {'bond' : 'bond', ... }                      
-            state (dict, optional): Properties for graph state. Defaults to {'size' : 'size', ... }                   
+            nodes (dict, optional): Properties for nodes. Defaults to {'proton' : "proton" }
+            edges (dict, optional): Properties for edges. Defaults to
+                {'bond': 'bond','distance': {'class': 'distance', 'args': {}}}
+            state (dict, optional): Properties for graph state. Defaults to {'size' : 'size'}
 
         Raises:
             AttributeError: If mol not found.
@@ -150,11 +149,29 @@ class MolGraph(nx.Graph):
             TypeError: If property info is incorrect.
 
         Returns:
-            None.
-
+            self: This instance.
         """
+        # Set defaults if None
         if self.mol is None:
             raise AttributeError("Initialize Molecule before making graph")
+        if nodes is None:
+            nodes = {'proton': "proton"}
+        if edges is None:
+            edges = {'bond': 'bond', 'distance': {'class': 'distance',
+                      'args': {'bonds_only': True, 'max_distance': np.inf, 'max_partners': np.inf}}}
+        if state is None:
+            state = {'size': 'size'}
+
+        # Make default keys if only list is inserted
+        if isinstance(nodes,list) or isinstance(nodes,tuple):
+            nodes_dict = {}
+            for x in nodes:
+                if isinstance(x,str):
+                    nodes_dict.update({x:x})
+                elif isinstance(x,dict):
+                    nodes_dict.update({x: x})
+                else:
+                    raise ValueError("Unknown ", x)
 
         for key, value in nodes.items():
             if isinstance(value, str):
@@ -168,7 +185,7 @@ class MolGraph(nx.Graph):
                 else:
                     # Custom function/class here
                     args = value['args'] if 'args' in value else {}
-                    value['class'](self, key, **args)
+                    value['class'](self, key=key, **args)
             else:
                 raise TypeError(
                     "Method must be a dict of {'class' : callable function/class or identifier, \
@@ -187,7 +204,7 @@ class MolGraph(nx.Graph):
                 else:
                     # Custom function/class here
                     args = value['args'] if 'args' in value else {}
-                    value['class'](self, key, **args)
+                    value['class'](self, key=key, **args)
             else:
                 raise TypeError(
                     "Method must be a dict of {'class' : callable function/class or identifier, \
@@ -206,7 +223,7 @@ class MolGraph(nx.Graph):
                 else:
                     # Custom function/class here
                     args = value['args'] if 'args' in value else {}
-                    value['class'](self, key, **args)
+                    value['class'](self, key=key, **args)
             else:
                 raise TypeError(
                     "Method must be a dict of {'class' : callable function/class or identifier, \

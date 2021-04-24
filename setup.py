@@ -13,7 +13,7 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="",
-    install_requires=['numpy', "scikit-learn","pandas","networkx","matplotlib","ase"],
+    install_requires=['numpy', "scikit-learn","pandas","networkx","matplotlib","ase", "py3Dmol"],
     extras_require={},
     packages=find_packages(),
     classifiers=[
