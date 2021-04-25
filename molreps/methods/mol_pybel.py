@@ -102,5 +102,3 @@ def ob_get_bond_table_from_coordinates(atoms, coords):
     # outMDL = ob_conversion.WriteString(mol)
     return ob_ats, ob_proton, bonds, ob_coord
 
-# a,c = ob_readXYZs("E:\\Benutzer\\Patrick\\PostDoc\\Projects ML\\dynamical_disorder\\data\\DPEPO\\dump_4984000.xyz")
-# ou1,ou2,ou3,ou4 =ob_get_bond_table_from_coordinates(a[0],c[0])

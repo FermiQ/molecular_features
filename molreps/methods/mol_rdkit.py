@@ -92,7 +92,7 @@ def rdkit_add_conformer(mol, coords, assign_id=False):
     """
     conf = rdkit.Chem.Conformer(len(coords))
     for i in range(len(coords)):
-        conf.SetAtomPosition(i, [coords[i, 0], coords[i, 1], coords[i, 2]])
+        conf.SetAtomPosition(i, [coords[i][0], coords[i][1], coords[i][2]])
     mol.AddConformer(conf, assignId=assign_id)
     return mol
 
