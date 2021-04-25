@@ -84,7 +84,7 @@ def rdkit_add_conformer(mol, coords, assign_id=False):
     Args:
         mol (rdkit.Chem.Mol): Mol object to add conformer.
         coords (array): Array of coordinates of shape (N,3).
-        assign_id (bool,int): To assing conformer iD. Default is False.
+        assign_id (bool,int): To assign conformer iD. Default is False.
 
     Returns:
         rdkit.Chem.Mol: Mol Object with added conformer.
@@ -116,7 +116,7 @@ def rdkit_make_mol_from_structure(atoms, bondlist, coordinates=None):
     return mol
 
 
-def rdkit_atom_list(mol, key, method, args={}):
+def rdkit_atom_list(mol, key, method, args=None):
     """
      Make a list of atoms with atomic information from rdkit.mol.
 
@@ -130,6 +130,8 @@ def rdkit_atom_list(mol, key, method, args={}):
         list: Atomlist that can be used in a networkx graph of shape [(i, {key: property})]
 
     """
+    if args is None:
+        args = {}
     # lenats = len(mol.GetAtoms())
     g = []
     for i, atm in enumerate(mol.GetAtoms()):
@@ -138,7 +140,7 @@ def rdkit_atom_list(mol, key, method, args={}):
     return g
 
 
-def rdkit_bond_list(mol, key, method, args={}):
+def rdkit_bond_list(mol, key, method, args=None):
     """
     Make a list of bonds with bond-type information from rdkit.mol.
 
@@ -153,6 +155,8 @@ def rdkit_bond_list(mol, key, method, args={}):
         list: Bondlist that can be used in a networkx graph of shape [(i,j, {key: property})]
 
     """
+    if args is None:
+        args = {}
     # lenats = len(mol.GetAtoms())
     # out = np.zeros((lenats,lenats))
     bonds = list(mol.GetBonds())
