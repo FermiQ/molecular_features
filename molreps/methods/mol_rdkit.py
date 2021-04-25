@@ -169,7 +169,7 @@ def rdkit_bond_list(mol, key, method, args=None):
 
 
 def rdkit_bond_distance_list(mol, key, conf_selection=0, methods='ETKDG', seed=0xf00d, max_distance=np.inf,
-                             max_partners=np.inf, bonds_only=True):
+                             max_partners=np.inf, bonds_only=True, exclusive = True):
     """
     Generate bond list with distance information from rdkit.mol.
 
@@ -190,7 +190,7 @@ def rdkit_bond_distance_list(mol, key, conf_selection=0, methods='ETKDG', seed=0
     if (not len(mol.GetConformers()) > 0):
         retval = rdkit.Chem.AllChem.EmbedMolecule(mol, randomSeed=seed)
     dist_mat = coordinates_to_distancematrix(np.array(mol.GetConformers()[conf_selection].GetPositions()))
-    adj_dist, idx_dist = define_adjacency_from_distance(dist_mat, max_distance, max_partners, exclusive=True)
+    adj_dist, idx_dist = define_adjacency_from_distance(dist_mat, max_distance, max_partners, exclusive=exclusive)
     if bonds_only:
         bonds = rdkit_bond_list(mol, key, rdkit.Chem.rdchem.Bond.GetBondType)
         for x in bonds:

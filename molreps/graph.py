@@ -147,7 +147,7 @@ class MolGraph(nx.Graph):
         Args:
             nodes (dict, optional): Properties for nodes. Defaults to {'proton' : "proton" }
             edges (dict, optional): Properties for edges. Defaults to
-                {'bond': 'bond','distance': {'class': 'distance', 'args': {}}}
+                {'bond': 'bond'} or {'distance': {'class': 'distance', 'args': {}}
             state (dict, optional): Properties for graph state. Defaults to {'size' : 'size'}
 
         Raises:
@@ -284,7 +284,7 @@ class MolGraph(nx.Graph):
 
         Args:
             nodes (list, optional): Nodes properties. Defaults to ['proton'].
-            edges (list, optional): Edge properties. Defaults to ['bond', 'distance'].
+            edges (list, optional): Edge properties. Defaults to ['bond'].
             state (list, optional): State Properties. Defaults to ['size'].
             trafo_nodes (dict, optional): Transformation function for nodes. Defaults to np.array.
             trafo_edges (dict, optional): Transformation function for edges. Defaults to np.array.
