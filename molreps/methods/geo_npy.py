@@ -640,3 +640,49 @@ def geometry_from_coulombmat(coulmat, unit_conversion=1):
 
     ats = [inverse_global_proton_dict[x] for x in pr]
     return ats, cords
+
+
+def add_edges_reverse_indices(edge_indices, edge_values=None, remove_duplicates=True, sort_indices=True):
+    """Add the edges for (i,j) as (j,i) with the same edge values. If they do already exist, no edge is added.
+    By default, all indices are sorted.
+
+    Args:
+        edge_indices (np.array): Index list of shape (N,2).
+        edge_values (np.array): Edge values of shape (N,M) matching the edge_indices
+        remove_duplicates (bool): Remove duplicate edge indices. Default is True.
+        sort_indices (bool): Sort final edge indices. Default is True.
+
+    Returns:
+        np.array: edge_indices or [edge_indices, edge_values]
+    """
+    clean_edge = None
+    edge_index_flip = np.concatenate([edge_indices[:,1:2] ,edge_indices[:,0:1]],axis=-1)
+    edge_index_flip_ij = edge_index_flip[edge_index_flip[:,1] != edge_index_flip[:,0]] # Do not flip self loops
+    clean_index = np.concatenate([edge_indices,edge_index_flip_ij],axis=0)
+    if edge_values is not None:
+        edge_to_add = edge_values[edge_index_flip[:,1] != edge_index_flip[:,0]]
+        clean_edge = np.concatenate([edge_values,edge_to_add],axis=0)
+
+    if remove_duplicates:
+        un, unis = np.unique(clean_index, return_index=True, axis=0)
+        mask_all = np.zeros(clean_index.shape[0], dtype=np.bool)
+        mask_all[unis] = True
+        mask_all[:edge_indices.shape[0]] = True # keep old indices untouched
+        clean_index = clean_index[mask_all]
+        if edge_values is not None:
+            # clean_edge = clean_edge[unis]
+            clean_edge = clean_edge[mask_all]
+
+    if sort_indices:
+        order1 = np.argsort(clean_index[:, 1], axis=0, kind='mergesort')  # stable!
+        ind1 = clean_index[order1]
+        if edge_values is not None:
+            clean_edge = clean_edge[order1]
+        order2 = np.argsort(ind1[:, 0], axis=0, kind='mergesort')
+        clean_index = ind1[order2]
+        if edge_values is not None:
+            clean_edge = clean_edge[order2]
+    if edge_values is not None:
+        return clean_index, clean_edge
+    else:
+        return clean_index

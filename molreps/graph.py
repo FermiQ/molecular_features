@@ -7,7 +7,7 @@ It uses networkx as graph interface and a mol object from rdkit, ase, pymatgen o
 # Necessary
 import networkx as nx
 import numpy as np
-
+from molreps.methods.geo_npy import add_edges_reverse_indices
 # Rdkit
 try:
     import rdkit
@@ -278,12 +278,13 @@ class MolGraph(nx.Graph):
         Convert the nx graph into a dict of tensors which can be directly used for GCN.
         
         The desired attributes must be given with a suitable conversion function plus default value.
-        Here, one can add also the type of tensor or one-Hot mappings etc. and its default/zero state
-        if the attributes is not specified for a specific node/edge.
+        Here, one can add also the type of tensor or one-Hot mappings etc. and its default/zero state,
+        if the attributes is not specified for a specific node/edge. The properties are always mapped to numpy arrays
+        and then converted to out_tensor.
 
         Args:
             nodes (list, optional): Nodes properties. Defaults to ['proton'].
-            edges (list, optional): Edge properties. Defaults to ['bond' , 'distance'].
+            edges (list, optional): Edge properties. Defaults to ['bond', 'distance'].
             state (list, optional): State Properties. Defaults to ['size'].
             trafo_nodes (dict, optional): Transformation function for nodes. Defaults to np.array.
             trafo_edges (dict, optional): Transformation function for edges. Defaults to np.array.
@@ -303,6 +304,7 @@ class MolGraph(nx.Graph):
             edges = [self._mols_implemented[self.mol_type]['edges'][0]]
         if state is None:
             state = [self._mols_implemented[self.mol_type]['state'][0]]
+
         if trafo_nodes is None:
             trafo_nodes = {}
         if trafo_edges is None:
@@ -351,7 +353,7 @@ class MolGraph(nx.Graph):
                 else:
                     current_node.append(default_nodes[key])
             outn.append(current_node)
-        outn = out_tensor(outn)
+        outn = np.array(outn)
 
         for i in edge_idx:
             current_edge = []
@@ -361,29 +363,23 @@ class MolGraph(nx.Graph):
                 else:
                     current_edge.append(default_edges[key])
             oute.append(current_edge)
-        oute = out_tensor(oute)
+        oute = np.array(oute)
 
         for key in state:
             if key in self._graph_state:
                 outs.append(trafo_state[key](self._graph_state[key]))
             else:
                 outs.append(default_state[key])
-        outs = out_tensor(outs)
+        outs = np.array(outs)
 
-        # Make directed
-        outei = np.concatenate([np.array(edge_idx), np.flip(np.array(edge_idx), axis=-1)], axis=0)
-        oute = np.concatenate([oute, oute], axis=0)
+        # Make un-directed and sort edges and edge_index
+        outei, oute = add_edges_reverse_indices(edge_idx,oute)
 
-        # Need some sorting for e.g. GCN
-        sorts = np.argsort(outei[:, 0], axis=0)
-        outei = outei[sorts]
-        oute = oute[sorts]
-
-        return {"nodes": outn,
-                "edges": oute,
-                "state": outs,
-                "adjacency": out_a,
-                "indices": outei}
+        return {"nodes": out_tensor(outn),
+                "edges": out_tensor(oute),
+                "state": out_tensor(outs),
+                "adjacency": out_tensor(out_a),
+                "indices": out_tensor(outei)}
 
 # m = rdkit.Chem.MolFromSmiles("CC=O")
 # test = MolGraph(m)
