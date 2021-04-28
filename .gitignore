@@ -4,3 +4,5 @@ dist
 molreps.egg-info
 /examples/.ipynb_checkpoints/
 /examples/.ipynb_checkpoints/*
+/examples/mol_1.mol
+/examples/mol_1.pdb
