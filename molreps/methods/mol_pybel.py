@@ -3,7 +3,7 @@
 Specific functions for molecular features.
 """
 
-import openbabel
+from openbabel import openbabel
 
 
 def ob_build_xyz_string_from_list(atoms, coords):
@@ -101,4 +101,3 @@ def ob_get_bond_table_from_coordinates(atoms, coords):
 
     # outMDL = ob_conversion.WriteString(mol)
     return ob_ats, ob_proton, bonds, ob_coord
-

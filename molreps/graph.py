@@ -23,7 +23,7 @@ except ModuleNotFoundError:
 
 # openbabel
 try:
-    import openbabel
+    from openbabel import openbabel
 
     MOLGRAPH_OPENBABEL_AVAILABLE = True
     from molreps.methods.mol_pybel import ob_get_bond_table_from_coordinates
